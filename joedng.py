@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 
-import sys
-import os
-
-# Make sure that our diamond engine can be found.
-sys.path.insert(0, os.path.abspath('../'))
-
 from diamond.scene import SceneManager
 
 from data.scenes.cave.scene import CaveScene
