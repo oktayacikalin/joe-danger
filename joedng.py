@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+#
+# Main entry point for the game.
+#
+# @author    Oktay Acikalin <oktay.acikalin@gmail.com>
+# @copyright Oktay Acikalin
+# @license   MIT (LICENSE.txt)
 
 from diamond.scene import SceneManager
 

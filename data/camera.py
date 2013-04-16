@@ -1,3 +1,9 @@
+# Camera class which moves the scene around to keep the target in the center.
+#
+# @author    Oktay Acikalin <oktay.acikalin@gmail.com>
+# @copyright Oktay Acikalin
+# @license   MIT (LICENSE.txt)
+
 from diamond.node import Node
 from diamond.sprite import Sprite
 

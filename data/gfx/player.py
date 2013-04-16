@@ -1,3 +1,9 @@
+# Player animations.
+#
+# @author    Oktay Acikalin <oktay.acikalin@gmail.com>
+# @copyright Oktay Acikalin
+# @license   MIT (LICENSE.txt)
+
 from json import load
 from collections import OrderedDict
 from os.path import splitext, dirname, join

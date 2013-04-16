@@ -4,7 +4,6 @@
 # @copyright Oktay Acikalin
 # @license   MIT (LICENSE.txt)
 
-
 from pygame.locals import KEYDOWN, KEYUP
 
 from diamond.sprite import Sprite

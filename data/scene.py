@@ -1,3 +1,9 @@
+# Abstract scene class.
+#
+# @author    Oktay Acikalin <oktay.acikalin@gmail.com>
+# @copyright Oktay Acikalin
+# @license   MIT (LICENSE.txt)
+
 from os.path import join
 # import ConfigParser
 
