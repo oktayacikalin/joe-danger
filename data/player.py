@@ -1,3 +1,10 @@
+# Defines the player object, it's capabilities and actions.
+#
+# @author    Oktay Acikalin <oktay.acikalin@gmail.com>
+# @copyright Oktay Acikalin
+# @license   MIT (LICENSE.txt)
+
+
 from pygame.locals import KEYDOWN, KEYUP
 
 from diamond.sprite import Sprite
@@ -141,9 +148,12 @@ class Player(Sprite):
         border_radius = 10  # Player border size.
         slip_radius = 13  # Player border size for slipping around edges.
         direction_data = dict(
-            right=((32 - border_radius, 0 + border_radius), (32 - border_radius, 31 - border_radius)),
-            left=((-1 + border_radius, 0 + border_radius), (-1 + border_radius, 31 - border_radius)),
-            fall_down=((0 + border_radius, 32), (16, 32), (31 - border_radius, 32)),
+            right=((32 - border_radius, 0 + border_radius),
+                   (32 - border_radius, 31 - border_radius)),
+            left=((-1 + border_radius, 0 + border_radius),
+                  (-1 + border_radius, 31 - border_radius)),
+            fall_down=((0 + border_radius, 32), (16, 32),
+                       (31 - border_radius, 32)),
             slip_left=((0 + slip_radius, 32), (0, 32)),
             slip_right=((31 - slip_radius, 32), (32, 32)),
             up=((0 + border_radius, -1), (16, -1), (31 - border_radius, -1)),
@@ -161,7 +171,7 @@ class Player(Sprite):
                         r_x = int(x + r_x + v_x) / 16
                         r_y = int(y + r_y + v_y) / 16
                         id = get_tile_id_at(r_x, r_y, passability_layer_level)
-                        # print('inspected point %s has id: %s' % ((r_x, r_y), id))
+                        # print('insp. point %s has id: %s' % ((r_x, r_y), id))
                         if id == 'passability/0':
                             result = False
                             break
@@ -186,7 +196,8 @@ class Player(Sprite):
                 f_y += diff
                 pos_dirty = True
 
-        if self.jump_energy in (0, self.jump_energy_max) and can('fall_down'):  # Not jumping and nothing to stand on?
+        # Not jumping and nothing to stand on?
+        if self.jump_energy in (0, self.jump_energy_max) and can('fall_down'):
             v_y += a_y
             v_y = v_y if v_y <= v_y_max else v_y_max
         if v_y > 0.0 and not can('fall_down'):  # Fallen on something?
@@ -203,7 +214,8 @@ class Player(Sprite):
             f_y += diff
             pos_dirty = True
 
-        if v_x == 0.0 and v_y == 0.0 and not can('fall_down'):  # Not jumping or falling?
+        # Not jumping or falling?
+        if v_x == 0.0 and v_y == 0.0 and not can('fall_down'):
             # Down right is empty?
             if can('slip_right'):
                 v_x += a_x * 2.0
@@ -233,11 +245,13 @@ class Player(Sprite):
 
         # Fix animations in exotic states.
         if v_x == 0.0 and v_y == 0.0 and self.action.startswith('walk_'):
-            if 'left' not in move_directions and 'right' not in move_directions:
+            if 'left' not in move_directions and \
+                    'right' not in move_directions:
                 action = 'look'
 
         if action:
-            # FIXME engine does not update immediately. e.g. left->right->left->right
+            # FIXME engine does not update immediately.
+            # e.g. left->right->left->right
             self.set_action('%s_%s' % (action, self.orientation))
             # print(self.action)
 
