@@ -8,6 +8,7 @@ from pygame.locals import KEYDOWN, KEYUP
 
 from diamond.sprite import Sprite
 from diamond import event
+from diamond.decorators import dump_args, time
 
 
 class Player(Sprite):
@@ -15,255 +16,504 @@ class Player(Sprite):
     def __init__(self, *args, **kwargs):
         self.__listeners = []
         super(Player, self).__init__(*args, **kwargs)
-        self.move_directions = dict()
+        self.active_commands = dict()
         self.orientation = 'right'
         self.tilematrix = None
         self.passability_layer_level = None
-        self.acceleration = 0.2, 0.3
-        self.velocity = 0.0, 0.0
-        self.velocity_max = 3.0, 15.0
-        self.exact_pos = None
-        self.jump_energy_max = 8
-        self.jump_energy = self.jump_energy_max
+        self.directions = None
+        self.mode = 'fall'
+        self.float_pos = None
+        self.velocity = (0.0, 0.0)
+        self.velocity_max = (3.0, 15.0)
+        self.acceleration = None
+        self.jump_energy = None
+        self.mode_methods = dict(
+            walk=self.__tick_mode_walk,
+            jump=self.__tick_mode_jump,
+            crouch=self.__tick_mode_crouch,
+            climb=self.__tick_mode_climb,
+            fall=self.__tick_mode_fall,
+        )
 
-    def set_controls(self, scene, move_up, move_down, move_left, move_right):
+    def set_controls(self, scene, up, down, left, right, action):
         event.remove_listeners(self.__listeners)
         self.__listeners = [
-            event.add_listener(self.__on_move_up_event,
+            event.add_listener(self.__on_up_event,
                                'scene.event.system',
                                context__scene__is=scene,
-                               context__event__key__eq=move_up),
-            event.add_listener(self.__on_move_down_event,
+                               context__event__key__eq=up),
+            event.add_listener(self.__on_down_event,
                                'scene.event.system',
                                context__scene__is=scene,
-                               context__event__key__eq=move_down),
-            event.add_listener(self.__on_move_left_event,
+                               context__event__key__eq=down),
+            event.add_listener(self.__on_left_event,
                                'scene.event.system',
                                context__scene__is=scene,
-                               context__event__key__eq=move_left),
-            event.add_listener(self.__on_move_right_event,
+                               context__event__key__eq=left),
+            event.add_listener(self.__on_right_event,
                                'scene.event.system',
                                context__scene__is=scene,
-                               context__event__key__eq=move_right),
+                               context__event__key__eq=right),
+            event.add_listener(self.__on_action_event,
+                               'scene.event.system',
+                               context__scene__is=scene,
+                               context__event__key__eq=action),
             # event.add_listener(self.__on_animation_event,
             #                    'sprite.animation.event',
             #                    context__sprite__is=self),
-            # TODO shooting
-            # TODO pushing
-            # TODO switching
-            # TODO placing bombs
         ]
 
     def setup_passability_layer(self, tilematrix, level):
         self.tilematrix = tilematrix
         self.passability_layer_level = level
-        self.exact_pos = map(float, self.pos)
+        self.__switch_to_mode(self.mode, force=True)
+        self.float_pos = map(float, self.pos)
 
-    def __del__(self):
+    def teardown(self):
+        # print 'Player.teardown(%s)' % self
         event.remove_listeners(self.__listeners)
-        super(Player, self).__del__()
+        self.mode_methods.clear()
+        self.tilematrix = None
 
-    def __on_move_up_event(self, context):
+    def __on_up_event(self, context):
         if context.event.type == KEYDOWN:
-            self.move_directions['up'] = True
+            self.active_commands['up'] = True
         elif context.event.type == KEYUP:
-            del self.move_directions['up']
+            del self.active_commands['up']
 
-    def __on_move_down_event(self, context):
+    def __on_down_event(self, context):
         if context.event.type == KEYDOWN:
-            self.move_directions['down'] = True
+            self.active_commands['down'] = True
         elif context.event.type == KEYUP:
-            del self.move_directions['down']
+            del self.active_commands['down']
 
-    def __on_move_left_event(self, context):
+    def __on_left_event(self, context):
         if context.event.type == KEYDOWN:
-            self.move_directions['left'] = True
+            self.active_commands['left'] = True
         elif context.event.type == KEYUP:
-            del self.move_directions['left']
+            del self.active_commands['left']
 
-    def __on_move_right_event(self, context):
+    def __on_right_event(self, context):
         if context.event.type == KEYDOWN:
-            self.move_directions['right'] = True
+            self.active_commands['right'] = True
         elif context.event.type == KEYUP:
-            del self.move_directions['right']
+            del self.active_commands['right']
 
-    def tick(self):
-        move_directions = self.move_directions.copy()  # TODO do we need copy?
+    def __on_action_event(self, context):
+        if context.event.type == KEYDOWN:
+            self.active_commands['action'] = True
+        elif context.event.type == KEYUP:
+            del self.active_commands['action']
 
-        if 'left' in move_directions and 'right' in move_directions:
-            del move_directions['left']
-            del move_directions['right']
-        if 'up' in move_directions and 'down' in move_directions:
-            del move_directions['up']
-            del move_directions['down']
-
-        v_x, v_y = self.velocity
-        v_x_max, v_y_max = self.velocity_max
-        a_x, a_y = self.acceleration
-        action = None
-        f_x, f_y = self.exact_pos
-        pos_dirty = False
-
-        if move_directions:
-            # print self.pos
-            # print move_directions
-
-            if 'left' in move_directions:
-                v_x -= a_x
-                self.orientation = 'left'
-                action = 'walk'
-            elif 'right' in move_directions:
-                v_x += a_x
-                self.orientation = 'right'
-                action = 'walk'
-            if 'up' in move_directions:
-                if v_y <= 0.0 and self.jump_energy > 0:
-                    v_y -= a_y * 2.0
-                    self.jump_energy -= 1
-                    # print 'JUMP'
-            elif self.jump_energy > 0:
-                self.jump_energy = 0
-            if v_y == 0.0:
-                self.jump_energy = self.jump_energy_max
-
-            v_x = v_x if v_x <= v_x_max else v_x_max
-            v_x = v_x if v_x >= -v_x_max else -v_x_max
-        elif v_y == 0.0:
-            self.jump_energy = self.jump_energy_max
+    def __can_switch_to_mode(self, mode, direction=None):
+        if mode == 'walk':
+            return True  # Should always be possible.
+        elif mode == 'climb':
+            return self.__has_climb(direction) and not self.__has_barrier('down')
+        elif mode == 'jump':
+            return not self.__has_barrier('up')
         else:
-            self.jump_energy = 0
+            raise Exception('Unknown mode: %s' % mode)
 
-        if v_x < 0.0 and 'left' not in move_directions:
-            v_x += a_x
-            v_x = float(int(v_x * 10.0)) / 10.0
-        elif v_x > 0.0 and 'right' not in move_directions:
-            v_x -= a_x
-            v_x = float(int(v_x * 10.0)) / 10.0
-
-        # Remove floating point errors from velocity.
-        # v_x = float(int(v_x * 10.0)) / 10.0
-        # v_y = float(int(v_y * 10.0)) / 10.0
-
-        border_radius = 10  # Player border size.
-        slip_radius = 13  # Player border size for slipping around edges.
-        direction_data = dict(
-            right=((32 - border_radius, 0 + border_radius),
-                   (32 - border_radius, 31 - border_radius)),
-            left=((-1 + border_radius, 0 + border_radius),
-                  (-1 + border_radius, 31 - border_radius)),
-            fall_down=((0 + border_radius, 32), (16, 32),
-                       (31 - border_radius, 32)),
-            slip_left=((0 + slip_radius, 32), (0, 32)),
-            slip_right=((31 - slip_radius, 32), (32, 32)),
-            up=((0 + border_radius, -1), (16, -1), (31 - border_radius, -1)),
+    # @time
+    def __switch_to_mode(self, mode, force=False):
+        if mode == self.mode and not force:
+            print('Already in mode: %s' % mode)
+            return
+        self.directions = dict(
+            up=[(8, -1), (16, -1), (23, -1)],
+            down=[(8, 32), (16, 32), (23, 32)],
+            left=[(7, 8), (7, 16), (7, 31)],
+            right=[(24, 8), (24, 16), (24, 31)],
+            center=[
+                (8, 8), (16, 8), (23, 8),
+                (16, 16),
+                (8, 31), (16, 31), (23, 31),
+            ],
+            down_left=[(8, 32), (8, 16)],
+            down_right=[(23, 32), (23, 16)],
+            slip_left=[(13, 32), (8, 16)],
+            slip_right=[(17, 32), (23, 16)],
         )
+        if mode == 'walk':
+            self.set_action('look_%s' % self.orientation)
+            self.acceleration = (0.2, 0.3)
+            self.velocity_max = (3.0, 15.0)
+        elif mode == 'jump':
+            self.set_action('jump_%s' % self.orientation)
+            self.acceleration = (0.2, 0.6)
+            self.velocity_max = (3.0, 10.0)
+            self.jump_energy = 8
+        elif mode == 'crouch':
+            self.set_action('crouch_look_%s' % self.orientation)
+            self.acceleration = (0.2, 0.2)
+            self.velocity_max = (1.0, 1.0)
+            self.directions = dict(
+                up=[(4, 15), (16, 15), (27, 15)],
+                down=[(4, 32), (16, 32), (27, 32)],
+                left=[(3, 16), (3, 31)],
+                right=[(28, 16), (28, 31)],
+                center=[
+                    (4, 16), (16, 16), (27, 16),
+                    (16, 24),
+                    (4, 31), (16, 31), (27, 31),
+                ]
+            )
+        elif mode == 'climb':
+            self.set_action('climb_look_%s' % self.orientation)
+            self.acceleration = (0.2, 0.2)
+            self.velocity_max = (1.0, 1.0)
+        elif mode == 'fall':
+            self.set_action('jump_%s' % self.orientation)
+            self.acceleration = (0.2, 0.3)
+            self.velocity_max = (3.0, 15.0)
+        else:
+            raise Exception('Unknown mode: %s' % mode)
+        self.mode = mode
 
+    def __get_tiles(self, direction, off_x=0.0, off_y=0.0):
+        pos_x, pos_y = self.float_pos
+        vel_x, vel_y = self.velocity
         passability_layer_level = self.passability_layer_level
         get_tile_id_at = self.tilematrix.get_tile_id_at
-        x, y = self.pos  # current pos
+        directions = self.directions
+        ids = []
+        for r_x, r_y in directions[direction]:
+            r_x = int(pos_x + r_x + vel_x + off_x) / 16
+            r_y = int(pos_y + r_y + vel_y + off_y) / 16
+            ids.append(get_tile_id_at(r_x, r_y, passability_layer_level))
+        return ids
 
-        def can(direction):
-            if direction in direction_data:
-                if type(direction_data[direction]) is not bool:
-                    result = True
-                    for r_x, r_y in direction_data[direction]:
-                        r_x = int(x + r_x + v_x) / 16
-                        r_y = int(y + r_y + v_y) / 16
-                        id = get_tile_id_at(r_x, r_y, passability_layer_level)
-                        # print('insp. point %s has id: %s' % ((r_x, r_y), id))
-                        if id == 'passability/0':
-                            result = False
-                            break
-                    direction_data[direction] = result
-                return direction_data[direction]
+    def __has_barrier(self, direction):
+        ids = self.__get_tiles(direction)
+        return 'passability/0,0' in ids
+
+    def __has_platform(self, direction):
+        ids = self.__get_tiles(direction)
+        return 'passability/1,0' in ids
+
+    def __has_ground(self, direction):
+        return self.__has_barrier(direction) or self.__has_platform(direction)
+
+    def __has_climb(self, direction):
+        ids = self.__get_tiles(direction)
+        return 'passability/1,0' in ids or 'passability/2,0' in ids
+
+    def __tick_mode_walk(self, state):
+        active_commands = state['active_commands']
+        vel_x = state['vel_x']
+        vel_y = state['vel_y']
+        vel_x_max = state['vel_x_max']
+        acc_x = state['acc_x']
+        acc_y = state['acc_y']
+        if 'left' in active_commands:
+            vel_x -= acc_x
+            self.orientation = 'left'
+        elif 'right' in active_commands:
+            vel_x += acc_x
+            self.orientation = 'right'
+        elif not self.__has_ground('slip_left') and self.__has_ground('down_right'):
+            vel_x -= acc_x
+        elif not self.__has_ground('slip_right') and self.__has_ground('down_left'):
+            vel_x += acc_x
+        else:
+            if vel_x < 0.0:
+                vel_x += acc_x
+            elif vel_x > 0.0:
+                vel_x -= acc_x
+            vel_x = float(int(vel_x * 10.0)) / 10.0
+        if 'up' in active_commands:
+            if self.__can_switch_to_mode('climb', 'center'):
+                self.__switch_to_mode('climb')
+            elif self.__can_switch_to_mode('jump'):
+                self.__switch_to_mode('jump')
+        elif 'down' in active_commands:
+            if self.__can_switch_to_mode('climb', 'down'):
+                vel_y += acc_y * 2
+                self.__switch_to_mode('climb')
             else:
-                return False
+                self.__switch_to_mode('crouch')
+        elif 'action' in active_commands:
+            self.__switch_to_mode('action')
+        if vel_x > 0.0:
+            vel_x = vel_x if vel_x <= vel_x_max else vel_x_max
+        elif vel_x < 0.0:
+            vel_x = vel_x if vel_x >= -vel_x_max else -vel_x_max
+        state['vel_x'] = vel_x
+        state['vel_y'] = vel_y
+        if vel_x != 0.0:
+            state['action'] = 'walk'
+        else:
+            state['action'] = 'look'
+        # If player has no ground below start falling.
+        if not self.__has_ground('down'):
+            self.__switch_to_mode('fall')
 
-        if v_x > 0.0:  # Wall to the right?
-            if not can('right'):
-                v_x = 0.0
-        if v_x < 0.0:  # Wall to the left?
-            if not can('left'):
-                v_x = 0.0
-        if v_y < 0.0:  # Wall to the top?
-            if not can('up'):
-                # print 'NO GO UP'
-                v_y = 0.0
-                # print('bumped on ceiling at: %s' % ((x, y),))
-                diff = int(round(f_y / 16.0)) * 16 - f_y
-                # print(diff)
-                f_y += diff
-                pos_dirty = True
-
-        # Not jumping and nothing to stand on?
-        if self.jump_energy in (0, self.jump_energy_max) and can('fall_down'):
-            v_y += a_y
-            v_y = v_y if v_y <= v_y_max else v_y_max
-        if v_y > 0.0 and not can('fall_down'):  # Fallen on something?
-        # if not can('fall_down'):  # Fallen on something?
-            speed = v_y
-            if speed > 7:
-                v_y = float(int(-(speed / 5.0) * 10.0)) / 10.0
-            else:
-                # print 'STOP V_Y'
-                v_y = 0.0
-            # print('bumped on floor at: %s' % ((x, y),))
-            diff = int(round(f_y / 16.0)) * 16 - f_y
+    def __tick_mode_jump(self, state):
+        active_commands = state['active_commands']
+        vel_x = state['vel_x']
+        vel_x_max = state['vel_x_max']
+        vel_y = state['vel_y']
+        vel_y_max = state['vel_y_max']
+        acc_x = state['acc_x']
+        acc_y = state['acc_y']
+        if 'left' in active_commands:
+            vel_x -= acc_x
+            self.orientation = 'left'
+            state['action'] = 'jump'
+        elif 'right' in active_commands:
+            vel_x += acc_x
+            self.orientation = 'right'
+            state['action'] = 'jump'
+        # If player has ground above and velocity <= 0.0 set JUMP
+        # energy and velocity to 0.0.
+        if self.__has_barrier('up'):
+            vel_y = 0.0
+            print('bumped on ceiling at: %s, %s' % (state['pos_x'], state['pos_y']))
+            # diff = int(round(pos_y / 16.0)) * 16 - pos_y
             # print(diff)
-            f_y += diff
+            # pos_y += diff
+            state['pos_dirty'] = True
+            self.__switch_to_mode('fall')
+        elif 'up' in active_commands:
+            if self.__can_switch_to_mode('climb', 'center'):
+                self.__switch_to_mode('climb')
+            elif self.jump_energy > 0:
+                vel_y -= acc_y
+                self.jump_energy -= 1
+            else:
+                self.__switch_to_mode('fall')
+        else:
+            self.__switch_to_mode('fall')
+        if vel_x > 0.0:
+            vel_x = vel_x if vel_x <= vel_x_max else vel_x_max
+        elif vel_x < 0.0:
+            vel_x = vel_x if vel_x >= -vel_x_max else -vel_x_max
+        if vel_y > 0.0:
+            vel_y = vel_y if vel_y <= vel_y_max else vel_y_max
+        elif vel_y < 0.0:
+            vel_y = vel_y if vel_y >= -vel_y_max else -vel_y_max
+        state['vel_x'] = vel_x
+        state['vel_y'] = vel_y
+
+    def __tick_mode_crouch(self, state):
+        active_commands = state['active_commands']
+        vel_x = state['vel_x']
+        vel_x_max = state['vel_x_max']
+        acc_x = state['acc_x']
+        if 'left' in active_commands:
+            vel_x -= acc_x
+            self.orientation = 'left'
+        elif 'right' in active_commands:
+            vel_x += acc_x
+            self.orientation = 'right'
+        else:
+            if vel_x < 0.0:
+                vel_x += acc_x
+            elif vel_x > 0.0:
+                vel_x -= acc_x
+            vel_x = float(int(vel_x * 10.0)) / 10.0
+        if not 'down' in active_commands:
+            if not self.__has_barrier('up'):
+                self.__switch_to_mode('walk')
+        if vel_x > 0.0:
+            vel_x = vel_x if vel_x <= vel_x_max else vel_x_max
+        elif vel_x < 0.0:
+            vel_x = vel_x if vel_x >= -vel_x_max else -vel_x_max
+        state['vel_x'] = vel_x
+        if vel_x != 0.0:
+            state['action'] = 'crouch'
+        else:
+            state['action'] = 'crouch_look'
+        # If player has no ground below start falling.
+        if not self.__has_ground('down'):
+            self.__switch_to_mode('fall')
+
+    def __tick_mode_climb(self, state):
+        active_commands = state['active_commands']
+        vel_x = state['vel_x']
+        vel_x_max = state['vel_x_max']
+        vel_y = state['vel_y']
+        vel_y_max = state['vel_y_max']
+        acc_x = state['acc_x']
+        acc_y = state['acc_y']
+        if 'left' in active_commands:
+            vel_x -= acc_x
+            self.orientation = 'left'
+        elif 'right' in active_commands:
+            vel_x += acc_x
+            self.orientation = 'right'
+        else:
+            if vel_x < 0.0:
+                vel_x += acc_x
+            elif vel_x > 0.0:
+                vel_x -= acc_x
+            vel_x = float(int(vel_x * 10.0)) / 10.0
+        if 'up' in active_commands:
+            vel_y -= acc_y
+        elif 'down' in active_commands:
+            vel_y += acc_y
+        else:
+            if vel_y < 0.0:
+                vel_y += acc_y
+            elif vel_y > 0.0:
+                vel_y -= acc_y
+            vel_y = float(int(vel_y * 10.0)) / 10.0
+        if vel_x > 0.0:
+            vel_x = vel_x if vel_x <= vel_x_max else vel_x_max
+        elif vel_x < 0.0:
+            vel_x = vel_x if vel_x >= -vel_x_max else -vel_x_max
+        if vel_y > 0.0:
+            vel_y = vel_y if vel_y <= vel_y_max else vel_y_max
+        elif vel_y < 0.0:
+            vel_y = vel_y if vel_y >= -vel_y_max else -vel_y_max
+        if self.__has_barrier('up') and vel_y < 0.0:
+            vel_y = 0.0
+            state['pos_dirty'] = True
+        if self.__has_barrier('down') and vel_y > 0.0:
+            vel_y = 0.0
+            state['pos_dirty'] = True
+        if not self.__has_climb('center'):
+            self.__switch_to_mode('fall')
+            vel_y -= acc_y * 3
+        state['vel_x'] = vel_x
+        state['vel_y'] = vel_y
+        if vel_x != 0.0 or vel_y != 0.0:
+            state['action'] = 'climb_up' if vel_y <= 0.0 else 'climb_down'
+        else:
+            state['action'] = 'climb_look'
+
+    def __tick_mode_fall(self, state):
+        active_commands = state['active_commands']
+        pos_y = state['pos_y']
+        vel_x = state['vel_x']
+        vel_x_max = state['vel_x_max']
+        vel_y = state['vel_y']
+        vel_y_max = state['vel_y_max']
+        acc_x = state['acc_x']
+        acc_y = state['acc_y']
+        if 'left' in active_commands:
+            vel_x -= acc_x
+            self.orientation = 'left'
+            state['action'] = 'jump'
+        elif 'right' in active_commands:
+            vel_x += acc_x
+            self.orientation = 'right'
+            state['action'] = 'jump'
+        else:
+            if vel_x < 0.0:
+                vel_x += acc_x / 2.0
+            elif vel_x > 0.0:
+                vel_x -= acc_x / 2.0
+            vel_x = float(int(vel_x * 10.0)) / 10.0
+        if 'up' in active_commands:
+            if self.__can_switch_to_mode('climb', 'center'):
+                self.__switch_to_mode('climb')
+        elif 'down' in active_commands:
+            if self.__can_switch_to_mode('climb', 'down'):
+                vel_y += acc_y * 2
+                self.__switch_to_mode('climb')
+        elif 'action' in active_commands:
+            self.__switch_to_mode('action')
+        # If player has ground above and velocity <= 0.0 set velocity to 0.0.
+        if vel_y < 0.0 and self.__has_barrier('up'):
+            vel_y = 0.0
+            # print('bumped on ceiling at: %s' % ((pos_x, pos_y),))
+            diff = int(round(pos_y / 16.0)) * 16 - pos_y
+            # print(diff)
+            state['pos_y'] += diff + 1
+            state['pos_dirty'] = True
+        else:
+            # If player has no ground below accelerate downwards.
+            if not self.__has_ground('down'):
+                vel_y += acc_y
+                # FIXME very tiny jump locks into an endless loop of -0.3 and 0.0.
+            # If player has ground below...
+            else:
+                # TODO ...and velocity >= 7.0 set velocity to -x/5 and
+                # switch to JUMP mode.
+
+                # ...set velocity to 0.0.
+                vel_y = 0.0
+                # Pull player out of barrier.
+                diff = int(round(pos_y / 16.0)) * 16 - pos_y
+                state['pos_y'] += diff
+                state['pos_dirty'] = True
+                self.__switch_to_mode('walk')  # TODO best choice?
+        if vel_x > 0.0:
+            vel_x = vel_x if vel_x <= vel_x_max else vel_x_max
+        elif vel_x < 0.0:
+            vel_x = vel_x if vel_x >= -vel_x_max else -vel_x_max
+        if vel_y > 0.0:
+            vel_y = vel_y if vel_y <= vel_y_max else vel_y_max
+        elif vel_y < 0.0:
+            vel_y = vel_y if vel_y >= -vel_y_max else -vel_y_max
+        state['vel_x'] = vel_x
+        state['vel_y'] = vel_y
+
+    def tick(self):
+        active_commands = self.active_commands.copy()  # Don't break code above.
+
+        if 'left' in active_commands and 'right' in active_commands:
+            del active_commands['left']
+            del active_commands['right']
+        if 'up' in active_commands and 'down' in active_commands:
+            del active_commands['up']
+            del active_commands['down']
+
+        pos_x, pos_y = self.float_pos
+        vel_x, vel_y = self.velocity
+        vel_x_max, vel_y_max = self.velocity_max
+        acc_x, acc_y = self.acceleration
+        pos_dirty = False
+        has_barrier = self.__has_barrier
+
+        # TODO If player gets hit by an enemy switch to DIE mode.
+
+        try:
+            method = self.mode_methods[self.mode]
+        except KeyError:
+            raise Exception('Unknown mode: %s' % self.mode)
+        state = dict(
+            active_commands=active_commands,
+            pos_x=pos_x,
+            pos_y=pos_y,
+            pos_dirty=pos_dirty,
+            vel_x=vel_x,
+            vel_y=vel_y,
+            vel_x_max=vel_x_max,
+            vel_y_max=vel_y_max,
+            acc_x=acc_x,
+            acc_y=acc_y,
+            action=None,
+        )
+        method(state)
+        vel_x, vel_y, action = state['vel_x'], state['vel_y'], state['action']
+        pos_x, pos_y, pos_dirty = state['pos_x'], state['pos_y'], state['pos_dirty']
+
+        # If player has ground at left or right set velocity to 0.0.
+        if has_barrier('left') and vel_x < 0.0:
+            vel_x = 0.0
+            pos_dirty = True
+            diff = int(round(pos_x / 16.0)) * 16 - pos_x - 7
+            print pos_x, diff
+            pos_x += diff
+            print pos_x
+        elif has_barrier('right') and vel_x > 0.0:
+            vel_x = 0.0
             pos_dirty = True
 
-        # Not jumping or falling?
-        if v_x == 0.0 and v_y == 0.0 and not can('fall_down'):
-            # Down right is empty?
-            if can('slip_right'):
-                v_x += a_x * 2.0
-                action = 'walk' if action in ('look', None) else action
-            # Down left is empty?
-            if can('slip_left'):
-                v_x -= a_x * 2.0
-                action = 'walk' if action in ('look', None) else action
-
-        if v_x > 0.0:  # Wall to the right?
-            if not can('right'):
-                v_x = 0.0
-        if v_x < 0.0:  # Wall to the left?
-            if not can('left'):
-                v_x = 0.0
-        if not can('fall_down'):  # Standing on ground?
-            diff = int(round(f_y / 16.0)) * 16 - f_y
-            # And stuck within a wall tile?
-            if diff > 0.0:
-                v_y -= a_y
-                # print(diff)
-            elif diff < 0.0:
-                v_y += a_y
-                # print(diff)
-
-        self.velocity = v_x, v_y
-
-        # Fix animations in exotic states.
-        if v_x == 0.0 and v_y == 0.0 and self.action.startswith('walk_'):
-            if 'left' not in move_directions and \
-                    'right' not in move_directions:
-                action = 'look'
-
-        if action:
-            # FIXME engine does not update immediately.
-            # e.g. left->right->left->right
+        if action and action != self.action:
             self.set_action('%s_%s' % (action, self.orientation))
-            # print(self.action)
 
-        # Now move sprite.
-        if v_x != 0.0 or v_y != 0.0:
-            f_x += v_x
-            f_y += v_y
-            # Remove floating point errors from exact position.
-            f_x = float(int(f_x * 10.0)) / 10.0
-            f_y = float(int(f_y * 10.0)) / 10.0
+        # print vel_x, vel_y, self.action, self.mode
+
+        if vel_x != 0.0 or vel_y != 0.0 or pos_dirty:
+            pos_x += vel_x
+            pos_y += vel_y
             pos_dirty = True
+        self.velocity = (vel_x, vel_y)
 
         if pos_dirty:
-            self.exact_pos = f_x, f_y
-            self.set_pos(int(f_x), int(f_y))
-            # print(self.exact_pos, self.velocity)
+            self.float_pos = (pos_x, pos_y)
+            self.set_pos(*map(int, self.float_pos))

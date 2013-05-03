@@ -7,7 +7,7 @@
 from os.path import join
 # import ConfigParser
 
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT
+from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_SPACE
 
 from diamond.scene import Scene
 from diamond.tilematrix import TileMatrix
@@ -81,10 +81,11 @@ class AbstractScene(Scene):
         player.orientation = 'right'
         # Setup player controls.
         player.set_controls(self, **dict(
-            move_up=K_UP,
-            move_down=K_DOWN,
-            move_left=K_LEFT,
-            move_right=K_RIGHT,
+            up=K_UP,
+            down=K_DOWN,
+            left=K_LEFT,
+            right=K_RIGHT,
+            action=K_SPACE,
         ))
         # Add player tick method to camera ticker to be in sync.
         self.camera_ticker.add(player.tick, 10)
@@ -100,3 +101,5 @@ class AbstractScene(Scene):
         #         layer.hide()
         # player.setup_passability_layers(tilemap, layer_names, pos[2])
         player.setup_passability_layer(tilemap, 1)  # TODO query matrix for layer "passability"
+        # Now put player in hands of scene itself. It will call teardown later on.
+        self.manage(player)
