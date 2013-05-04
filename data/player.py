@@ -130,10 +130,14 @@ class Player(Sprite):
                 (16, 16),
                 (8, 31), (16, 31), (23, 31),
             ],
+            up_left=[(8, -1), (8, 16)],
+            up_right=[(23, -1), (23, 16)],
             down_left=[(8, 32), (8, 16)],
             down_right=[(23, 32), (23, 16)],
-            slip_left=[(13, 32), (8, 16)],
-            slip_right=[(17, 32), (23, 16)],
+            slip_up_left=[(8, -1), (8, 16)],
+            slip_up_right=[(23, -1), (23, 16)],
+            slip_down_left=[(13, 32), (8, 16)],
+            slip_down_right=[(18, 32), (23, 16)],
         )
         if mode == 'walk':
             self.set_action('look_%s' % self.orientation)
@@ -212,9 +216,9 @@ class Player(Sprite):
         elif 'right' in active_commands:
             vel_x += acc_x
             self.orientation = 'right'
-        elif not self.__has_ground('slip_left') and self.__has_ground('down_right'):
+        elif not self.__has_ground('slip_down_left') and self.__has_ground('down_right'):
             vel_x -= acc_x
-        elif not self.__has_ground('slip_right') and self.__has_ground('down_left'):
+        elif not self.__has_ground('slip_down_right') and self.__has_ground('down_left'):
             vel_x += acc_x
         else:
             if vel_x < 0.0:
@@ -265,14 +269,25 @@ class Player(Sprite):
             vel_x += acc_x
             self.orientation = 'right'
             state['action'] = 'jump'
+
+        if not self.__has_barrier('slip_up_left') and self.__has_barrier('up_right'):
+            vel_x -= acc_x
+            if vel_y < 0.0:
+                vel_y += acc_y
+        elif not self.__has_barrier('slip_up_right') and self.__has_barrier('up_left'):
+            vel_x += acc_x
+            if vel_y < 0.0:
+                vel_y += acc_y
         # If player has ground above and velocity <= 0.0 set JUMP
         # energy and velocity to 0.0.
-        if self.__has_barrier('up'):
+        elif self.__has_barrier('up'):
             vel_y = 0.0
-            print('bumped on ceiling at: %s, %s' % (state['pos_x'], state['pos_y']))
-            # diff = int(round(pos_y / 16.0)) * 16 - pos_y
+            # print('bumped on ceiling at: %s, %s' % (state['pos_x'], state['pos_y']))
+            pos_y = state['pos_y']
+            diff = int(round(pos_y / 16.0)) * 16 - pos_y
             # print(diff)
-            # pos_y += diff
+            pos_y += diff
+            state['pos_y'] = pos_y
             state['pos_dirty'] = True
             self.__switch_to_mode('fall')
         elif 'up' in active_commands:
@@ -307,6 +322,11 @@ class Player(Sprite):
         elif 'right' in active_commands:
             vel_x += acc_x
             self.orientation = 'right'
+        # TODO implement this?
+        # elif not self.__has_ground('slip_down_left') and self.__has_ground('down_right'):
+        #     vel_x -= acc_x
+        # elif not self.__has_ground('slip_down_right') and self.__has_ground('down_left'):
+        #     vel_x += acc_x
         else:
             if vel_x < 0.0:
                 vel_x += acc_x
@@ -400,6 +420,10 @@ class Player(Sprite):
             vel_x += acc_x
             self.orientation = 'right'
             state['action'] = 'jump'
+        elif not self.__has_ground('slip_down_left') and self.__has_ground('down_right'):
+            vel_x -= acc_x
+        elif not self.__has_ground('slip_down_right') and self.__has_ground('down_left'):
+            vel_x += acc_x
         else:
             if vel_x < 0.0:
                 vel_x += acc_x / 2.0
@@ -495,10 +519,10 @@ class Player(Sprite):
         if has_barrier('left') and vel_x < 0.0:
             vel_x = 0.0
             pos_dirty = True
-            diff = int(round(pos_x / 16.0)) * 16 - pos_x - 7
-            print pos_x, diff
-            pos_x += diff
-            print pos_x
+            # diff = int(round(pos_x / 16.0)) * 16 - pos_x - 7
+            # print pos_x, diff
+            # pos_x += diff
+            # print pos_x
         elif has_barrier('right') and vel_x > 0.0:
             vel_x = 0.0
             pos_dirty = True
