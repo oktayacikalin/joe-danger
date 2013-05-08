@@ -5,7 +5,7 @@
 # @license   MIT (LICENSE.txt)
 
 from os.path import join
-# import ConfigParser
+import ConfigParser
 
 from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_SPACE
 
@@ -38,13 +38,12 @@ class AbstractScene(Scene):
         self.display_layout = display_layout
         self.add_default_listeners()
         self.ticker = Ticker()
-        self.camera_ticker = Ticker()
+        # self.camera_ticker = Ticker()
+        self.camera_ticker = Ticker(limit=2, timeout=10)
         self.camera_ticker.is_threaded = False  # Keep in sync with display.
         self.transition_manager = TransitionManager()
         self.bind(self.ticker, self.camera_ticker, self.transition_manager)
         self.__setup_fps()
-
-        # self.camera_ticker.drop_outdated_msecs = 100
 
         config_file = join(data_path, 'matrix.ini')
 
@@ -54,9 +53,9 @@ class AbstractScene(Scene):
         tilemap.add_to(self.root_node)
         # tilemap.set_pos(0, 550)
 
-        # config = ConfigParser.ConfigParser()
-        # config.read(config_file)
-        # layer_names = dict([(id, int(z)) for z, id in config.items('layer.names')])
+        config = ConfigParser.ConfigParser()
+        config.read(config_file)
+        layer_names = dict([(id, int(z)) for z, id in config.items('layer.names')])
         # print layer_names
 
         # Search for possible entry points.
@@ -93,13 +92,12 @@ class AbstractScene(Scene):
         self.camera = Camera(tilemap, player)
         self.camera_ticker.add(self.camera.tick, 10)
 
-        # for name in layer_names:
-        #     if not name.endswith('.passability'):
-        #         continue
-        #     layer = tilemap.get_layer(layer_names[name], auto_create=True)
-        #     if layer is not None:
-        #         layer.hide()
-        # player.setup_passability_layers(tilemap, layer_names, pos[2])
+        for name in layer_names:
+            if name != 'passability':
+                continue
+            layer = tilemap.get_layer(layer_names[name], auto_create=True)
+            if layer is not None:
+                layer.hide()
         player.setup_passability_layer(tilemap, 1)  # TODO query matrix for layer "passability"
         # Now put player in hands of scene itself. It will call teardown later on.
         self.manage(player)

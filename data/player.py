@@ -109,7 +109,7 @@ class Player(Sprite):
         if mode == 'walk':
             return True  # Should always be possible.
         elif mode == 'climb':
-            return self.__has_climb(direction) and not self.__has_barrier('down')
+            return self.__has_climb('climb_%s' % direction) and not self.__has_barrier('down')
         elif mode == 'jump':
             return not self.__has_barrier('up')
         else:
@@ -126,9 +126,12 @@ class Player(Sprite):
             left=[(7, 8), (7, 16), (7, 31)],
             right=[(24, 8), (24, 16), (24, 31)],
             center=[
-                (8, 8), (16, 8), (23, 8),
+                # (8, 8), (16, 8), (23, 8),
+                # (16, 16),
+                # (8, 31), (16, 31), (23, 31),
+                (15, 8), (16, 8), (17, 8),
                 (16, 16),
-                (8, 31), (16, 31), (23, 31),
+                (15, 31), (16, 31), (17, 31),
             ],
             up_left=[(8, -1), (8, 16)],
             up_right=[(23, -1), (23, 16)],
@@ -138,6 +141,15 @@ class Player(Sprite):
             slip_up_right=[(23, -1), (23, 16)],
             slip_down_left=[(13, 32), (8, 16)],
             slip_down_right=[(18, 32), (23, 16)],
+            climb_center=[
+                # (8, 8), (16, 8), (23, 8),
+                # (16, 16),
+                # (8, 31), (16, 31), (23, 31),
+                (15, 8), (16, 8), (17, 8),
+                (16, 16),
+                (15, 31), (16, 31), (17, 31),
+            ],
+            climb_down=[(15, 32), (16, 32), (17, 32)],
         )
         if mode == 'walk':
             self.set_action('look_%s' % self.orientation)
@@ -194,7 +206,7 @@ class Player(Sprite):
 
     def __has_platform(self, direction):
         ids = self.__get_tiles(direction)
-        return 'passability/1,0' in ids
+        return 'passability/1,0' in ids or 'passability/3,0' in ids
 
     def __has_ground(self, direction):
         return self.__has_barrier(direction) or self.__has_platform(direction)
@@ -261,11 +273,11 @@ class Player(Sprite):
         vel_y_max = state['vel_y_max']
         acc_x = state['acc_x']
         acc_y = state['acc_y']
-        if 'left' in active_commands:
+        if 'left' in active_commands and not self.__has_barrier('up_left'):
             vel_x -= acc_x
             self.orientation = 'left'
             state['action'] = 'jump'
-        elif 'right' in active_commands:
+        elif 'right' in active_commands and not self.__has_barrier('up_right'):
             vel_x += acc_x
             self.orientation = 'right'
             state['action'] = 'jump'
@@ -390,9 +402,10 @@ class Player(Sprite):
         if self.__has_barrier('up') and vel_y < 0.0:
             vel_y = 0.0
             state['pos_dirty'] = True
-        if self.__has_barrier('down') and vel_y > 0.0:
+        if self.__has_ground('down') and not self.__has_climb('climb_down') and vel_y > 0.0:
             vel_y = 0.0
             state['pos_dirty'] = True
+            self.__switch_to_mode('walk')
         if not self.__has_climb('center'):
             self.__switch_to_mode('fall')
             vel_y -= acc_y * 3
@@ -442,18 +455,15 @@ class Player(Sprite):
         # If player has ground above and velocity <= 0.0 set velocity to 0.0.
         if vel_y < 0.0 and self.__has_barrier('up'):
             vel_y = 0.0
-            # print('bumped on ceiling at: %s' % ((pos_x, pos_y),))
+            # print('bumped on ceiling at: %s' % ((state['pos_x'], pos_y),))
             diff = int(round(pos_y / 16.0)) * 16 - pos_y
             # print(diff)
             state['pos_y'] += diff + 1
             state['pos_dirty'] = True
         else:
-            # If player has no ground below accelerate downwards.
-            if not self.__has_ground('down'):
-                vel_y += acc_y
-                # FIXME very tiny jump locks into an endless loop of -0.3 and 0.0.
-            # If player has ground below...
-            else:
+            # If player is falling and has ground below...
+            if vel_y >= 0.0 and self.__has_ground('down'):
+                # print('bumped on floor at: %s' % ((state['pos_x'], pos_y),))
                 # TODO ...and velocity >= 7.0 set velocity to -x/5 and
                 # switch to JUMP mode.
 
@@ -464,6 +474,10 @@ class Player(Sprite):
                 state['pos_y'] += diff
                 state['pos_dirty'] = True
                 self.__switch_to_mode('walk')  # TODO best choice?
+            # If player has no ground below accelerate downwards.
+            else:
+                vel_y += acc_y
+                # FIXME very tiny jump locks into an endless loop of -0.3 and 0.0.
         if vel_x > 0.0:
             vel_x = vel_x if vel_x <= vel_x_max else vel_x_max
         elif vel_x < 0.0:
