@@ -28,10 +28,12 @@ class AbstractScene(Scene):
         fps_node.order_matters = False
         fps_node.add_to(self.root_node)
         fps = Fps(ticker=self.ticker, details=True)
-        # fps.set_alpha(25)  # FIXME see below
+        fps.set_alpha(75) 
+        fps.set_background_color(0, 0, 0, 230)
+        fps.set_background_border(3)
         fps.add_to(fps_node)
         fps.set_align_box(self.display_layout['screen_size'][0], 0, 'right')
-        fps_node.set_order_pos(10)  # FIXME confused alpha channel in display module.
+        fps_node.set_order_pos(10)
 
     def setup(self, display_layout, data_path):
         super(AbstractScene, self).setup()
@@ -50,6 +52,7 @@ class AbstractScene(Scene):
         tilemap = TileMatrix()
         # tilemap.show_sector_coords = True
         tilemap.load_config(config_file)
+        tilemap.set_sector_size(30, 10)
         tilemap.add_to(self.root_node)
         # tilemap.set_pos(0, 550)
 
@@ -87,10 +90,10 @@ class AbstractScene(Scene):
             action=K_SPACE,
         ))
         # Add player tick method to camera ticker to be in sync.
-        self.camera_ticker.add(player.tick, 10)
+        self.camera_ticker.add(player.tick, 15)
 
         self.camera = Camera(tilemap, player)
-        self.camera_ticker.add(self.camera.tick, 10)
+        self.camera_ticker.add(self.camera.tick, 15)
 
         for name in layer_names:
             if name != 'passability':
@@ -101,3 +104,5 @@ class AbstractScene(Scene):
         player.setup_passability_layer(tilemap, 1)  # TODO query matrix for layer "passability"
         # Now put player in hands of scene itself. It will call teardown later on.
         self.manage(player)
+
+        # TODO implement prefetching of tilemap sectors if event display.update.cpu_is_idle is being emitted.

@@ -8,6 +8,7 @@ from pygame.locals import KEYDOWN, KEYUP
 
 from diamond.sprite import Sprite
 from diamond import event
+from diamond.sound import Sound, ChannelArray
 from diamond.decorators import dump_args, time
 
 
@@ -34,6 +35,10 @@ class Player(Sprite):
             climb=self.__tick_mode_climb,
             fall=self.__tick_mode_fall,
         )
+        self.track_animation_events = True
+        sound = Sound.get_instance()
+        self.sound_array = ChannelArray(2)
+        self.walk_sound = sound.load('data/sfx/walk.ogg', volume=48)
 
     def set_controls(self, scene, up, down, left, right, action):
         event.remove_listeners(self.__listeners)
@@ -58,9 +63,9 @@ class Player(Sprite):
                                'scene.event.system',
                                context__scene__is=scene,
                                context__event__key__eq=action),
-            # event.add_listener(self.__on_animation_event,
-            #                    'sprite.animation.event',
-            #                    context__sprite__is=self),
+            event.add_listener(self.__on_animation_event,
+                               'sprite.animation.event',
+                               context__sprite__is=self),
         ]
 
     def setup_passability_layer(self, tilematrix, level):
@@ -104,6 +109,10 @@ class Player(Sprite):
             self.active_commands['action'] = True
         elif context.event.type == KEYUP:
             del self.active_commands['action']
+
+    def __on_animation_event(self, context):
+        if context.event == 'walk_step':
+            self.sound_array.play(self.walk_sound)
 
     def __can_switch_to_mode(self, mode, direction=None):
         if mode == 'walk':
@@ -180,7 +189,7 @@ class Player(Sprite):
             self.acceleration = (0.2, 0.2)
             self.velocity_max = (1.0, 1.0)
         elif mode == 'fall':
-            self.set_action('jump_%s' % self.orientation)
+            self.set_action('fall_%s' % self.orientation)
             self.acceleration = (0.2, 0.3)
             self.velocity_max = (3.0, 15.0)
         else:
@@ -194,6 +203,10 @@ class Player(Sprite):
         get_tile_id_at = self.tilematrix.get_tile_id_at
         directions = self.directions
         ids = []
+        # This fixes a problem when jumping into walls and suddenly see
+        # ground below the player because of the velocity.
+        if 'down' in direction:
+            vel_x = 0.0
         for r_x, r_y in directions[direction]:
             r_x = int(pos_x + r_x + vel_x + off_x) / 16
             r_y = int(pos_y + r_y + vel_y + off_y) / 16
