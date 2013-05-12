@@ -28,12 +28,67 @@ class AbstractScene(Scene):
         fps_node.order_matters = False
         fps_node.add_to(self.root_node)
         fps = Fps(ticker=self.ticker, details=True)
-        fps.set_alpha(75) 
+        fps.set_alpha(75)
         fps.set_background_color(0, 0, 0, 230)
         fps.set_background_border(3)
         fps.add_to(fps_node)
         fps.set_align_box(self.display_layout['screen_size'][0], 0, 'right')
         fps_node.set_order_pos(10)
+
+    def __setup_player(self):
+        tilemap = self.tilemap
+
+        # Search for possible entry points.
+        player_entry_points = tilemap.find_in_matrix('player')
+        if not player_entry_points:
+            raise Exception('Missing player char in tilemap!')
+        # Decide for one entry point.
+        # TODO for now we just take the first one.
+        pep = player_entry_points[0]
+        pos = pep[:3]
+        tile_id = pep[3]
+        print('Found entry point with tile_id %s at: %s' % (tile_id, pos))
+        # And now remove all entry point tiles from view.
+        for pep in player_entry_points:
+            tilemap.set_tile_at(*(pep[:3] + [None]))
+        # Save the list for later (e.g. respawn)
+        self.player_entry_points = player_entry_points
+
+        # Create player object.
+        player = Player.make(player_gfx, 'default')
+        # Add it to the matrix.
+        tilemap.get_layer(pos[2], auto_create=True).add(player)
+        # Setup player position and orientation.
+        t_w, t_h = tilemap.get_tile_size()
+        player.pos = t_w * pos[0], t_h * pos[1]
+        player.orientation = 'right'
+        # Setup player controls.
+        player.set_controls(self, **dict(
+            up=K_UP,
+            down=K_DOWN,
+            left=K_LEFT,
+            right=K_RIGHT,
+            action=K_SPACE,
+        ))
+        # Add player tick method to camera ticker to be in sync.
+        self.camera_ticker.add(player.tick, 15)
+
+        # Setup camera.
+        self.camera = Camera(tilemap, player)
+        self.camera_ticker.add(self.camera.tick, 15)
+
+        player.setup_passability_layer(tilemap, 1)  # TODO query matrix for layer "passability"
+        # Now put player in hands of scene itself. It will call teardown later on.
+        self.manage(player)
+
+    def __hide_passability(self):
+        for name in self.layer_names:
+            if name != 'passability':
+                continue
+            layer = self.tilemap.get_layer(self.layer_names[name], auto_create=True)
+            if layer is not None:
+                layer.hide()
+                break
 
     def setup(self, display_layout, data_path):
         super(AbstractScene, self).setup()
@@ -55,54 +110,14 @@ class AbstractScene(Scene):
         tilemap.set_sector_size(30, 10)
         tilemap.add_to(self.root_node)
         # tilemap.set_pos(0, 550)
+        self.tilemap = tilemap
 
         config = ConfigParser.ConfigParser()
         config.read(config_file)
-        layer_names = dict([(id, int(z)) for z, id in config.items('layer.names')])
-        # print layer_names
+        self.layer_names = dict([(id, int(z)) for z, id in config.items('layer.names')])
+        # print self.layer_names
 
-        # Search for possible entry points.
-        player_entry_points = tilemap.find_in_matrix('player')
-        if not player_entry_points:
-            raise Exception('Missing player char in tilemap!')
-        # Decide for one entry point. TODO for now we just take the first one.
-        pep = player_entry_points[0]
-        pos = pep[:3]
-        tile_id = pep[3]
-        print('Found entry point with tile_id %s at: %s' % (tile_id, pos))
-        # And now remove all entry point tiles from view.
-        for pep in player_entry_points:
-            tilemap.set_tile_at(*(pep[:3] + [None]))
-        # Create player object.
-        player = Player.make(player_gfx, 'default')
-        # Add it to the matrix.
-        tilemap.get_layer(pos[2], auto_create=True).add(player)
-        # Setup player position and orientation.
-        t_w, t_h = tilemap.get_tile_size()
-        player.pos = t_w * pos[0], t_h * pos[1]
-        player.orientation = 'right'
-        # Setup player controls.
-        player.set_controls(self, **dict(
-            up=K_UP,
-            down=K_DOWN,
-            left=K_LEFT,
-            right=K_RIGHT,
-            action=K_SPACE,
-        ))
-        # Add player tick method to camera ticker to be in sync.
-        self.camera_ticker.add(player.tick, 15)
-
-        self.camera = Camera(tilemap, player)
-        self.camera_ticker.add(self.camera.tick, 15)
-
-        for name in layer_names:
-            if name != 'passability':
-                continue
-            layer = tilemap.get_layer(layer_names[name], auto_create=True)
-            if layer is not None:
-                layer.hide()
-        player.setup_passability_layer(tilemap, 1)  # TODO query matrix for layer "passability"
-        # Now put player in hands of scene itself. It will call teardown later on.
-        self.manage(player)
+        self.__hide_passability()
+        self.__setup_player()
 
         # TODO implement prefetching of tilemap sectors if event display.update.cpu_is_idle is being emitted.
