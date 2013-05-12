@@ -477,16 +477,19 @@ class Player(Sprite):
             # If player is falling and has ground below...
             if vel_y >= 0.0 and self.__has_ground('down'):
                 # print('bumped on floor at: %s' % ((state['pos_x'], pos_y),))
-                # TODO ...and velocity >= 7.0 set velocity to -x/5 and
-                # switch to JUMP mode.
-
-                # ...set velocity to 0.0.
-                vel_y = 0.0
-                # Pull player out of barrier.
-                diff = int(round(pos_y / 16.0)) * 16 - pos_y
-                state['pos_y'] += diff
-                state['pos_dirty'] = True
-                self.__switch_to_mode('walk')  # TODO best choice?
+                # ...and velocity >= 7.0 set velocity to -y/5 and
+                if vel_y >= 7.0:
+                    vel_y = -vel_y / 5
+                    # switch to JUMP mode. TODO really? I like fall mode more...
+                    # self.__switch_to_mode('jump')
+                else:
+                    # ...set velocity to 0.0.
+                    vel_y = 0.0
+                    # Pull player out of barrier.
+                    diff = int(round(pos_y / 16.0)) * 16 - pos_y
+                    state['pos_y'] += diff
+                    state['pos_dirty'] = True
+                    self.__switch_to_mode('walk')  # TODO best choice?
             # If player has no ground below accelerate downwards.
             else:
                 vel_y += acc_y
