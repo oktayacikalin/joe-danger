@@ -30,6 +30,9 @@ def main():
     manager.add_scene(CaveScene, scene_id='cave', display_layout=DISPLAY_LAYOUT)
     manager.run('cave')
 
+    from diamond.decorators import print_time_stats
+    print_time_stats()
+
 
 if __name__ == '__main__':
     main()
