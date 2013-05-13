@@ -95,8 +95,8 @@ class AbstractScene(Scene):
         self.display_layout = display_layout
         self.add_default_listeners()
         self.ticker = Ticker()
-        # self.camera_ticker = Ticker()
-        self.camera_ticker = Ticker(limit=2, timeout=10)
+        self.camera_ticker = Ticker()
+        # self.camera_ticker = Ticker(limit=2, timeout=10)
         self.camera_ticker.is_threaded = False  # Keep in sync with display.
         self.transition_manager = TransitionManager()
         self.bind(self.ticker, self.camera_ticker, self.transition_manager)
