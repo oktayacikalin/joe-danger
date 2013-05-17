@@ -14,8 +14,8 @@ from data.scenes.cave.scene import CaveScene
 # Display options
 DISPLAY_LAYOUT = {
     'screen_size': (640, 480),
-    'framerate': 60,
-    'scaling': 1.00,  # 1.0 is normal; 2.0 would be double window size.
+    # 'framerate': 60,
+    # 'scaling': 1.30,  # 1.0 is normal; 2.0 would be double window size.
     # 'fullscreen': True,
 }
 
