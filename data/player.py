@@ -84,31 +84,46 @@ class Player(Sprite):
         if context.event.type == KEYDOWN:
             self.active_commands['up'] = True
         elif context.event.type == KEYUP:
-            del self.active_commands['up']
+            try:
+                del self.active_commands['up']
+            except KeyError:
+                pass
 
     def __on_down_event(self, context):
         if context.event.type == KEYDOWN:
             self.active_commands['down'] = True
         elif context.event.type == KEYUP:
-            del self.active_commands['down']
+            try:
+                del self.active_commands['down']
+            except KeyError:
+                pass
 
     def __on_left_event(self, context):
         if context.event.type == KEYDOWN:
             self.active_commands['left'] = True
         elif context.event.type == KEYUP:
-            del self.active_commands['left']
+            try:
+                del self.active_commands['left']
+            except KeyError:
+                pass
 
     def __on_right_event(self, context):
         if context.event.type == KEYDOWN:
             self.active_commands['right'] = True
         elif context.event.type == KEYUP:
-            del self.active_commands['right']
+            try:
+                del self.active_commands['right']
+            except KeyError:
+                pass
 
     def __on_action_event(self, context):
         if context.event.type == KEYDOWN:
             self.active_commands['action'] = True
         elif context.event.type == KEYUP:
-            del self.active_commands['action']
+            try:
+                del self.active_commands['action']
+            except KeyError:
+                pass
 
     def __on_animation_event(self, context):
         if context.event == 'walk_step':
