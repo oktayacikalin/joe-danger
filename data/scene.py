@@ -50,7 +50,7 @@ class AbstractScene(Scene):
         print('Found entry point with tile_id %s at: %s' % (tile_id, pos))
         # And now remove all entry point tiles from view.
         for pep in player_entry_points:
-            tilemap.set_tile_at(*(pep[:3] + [None]))
+            tilemap.set_tiles_at([(pep[:3] + [None])])
         # Save the list for later (e.g. respawn)
         self.player_entry_points = player_entry_points
 
