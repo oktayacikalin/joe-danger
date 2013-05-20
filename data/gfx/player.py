@@ -68,25 +68,25 @@ sprites.update({
             # [( 64, 64, 32, 32), ( 64, 64), (0, 0), 360],
             -1,
         ],
-        'crouch_look_left': [
+        'crawl_look_left': [
             #       rect     ,  hotspot , delta , msecs
             [(128, 32, 32, 32), (128, 32), (0, 0), 120],
         ],
-        'crouch_look_right': [
+        'crawl_look_right': [
             #       rect     ,  hotspot , delta , msecs
             [(128, 64, 32, 32), (128, 64), (0, 0), 120],
         ],
-        'crouch_left': [
+        'crawl_left': [
             #        rect     ,  hotspot , delta , msecs
             [( 96, 32, 32, 32), ( 96, 32), (0, 0), 120],
-            [(128, 32, 32, 32), (128, 32), (0, 0), 120, 'crouch_step'],
+            [(128, 32, 32, 32), (128, 32), (0, 0), 120, 'crawl_step'],
             [(160, 32, 32, 32), (160, 32), (0, 0), 120],
             -1,
         ],
-        'crouch_right': [
+        'crawl_right': [
             #        rect     ,  hotspot , delta , msecs
             [( 96, 64, 32, 32), ( 96, 64), (0, 0), 120],
-            [(128, 64, 32, 32), (128, 64), (0, 0), 120, 'crouch_step'],
+            [(128, 64, 32, 32), (128, 64), (0, 0), 120, 'crawl_step'],
             [(160, 64, 32, 32), (160, 64), (0, 0), 120],
             -1,
         ],

@@ -31,14 +31,18 @@ class Player(Sprite):
         self.mode_methods = dict(
             walk=self.__tick_mode_walk,
             jump=self.__tick_mode_jump,
-            crouch=self.__tick_mode_crouch,
+            crawl=self.__tick_mode_crawl,
             climb=self.__tick_mode_climb,
             fall=self.__tick_mode_fall,
         )
         self.track_animation_events = True
         sound = Sound.get_instance()
-        self.sound_array = ChannelArray(2)
-        self.walk_sound = sound.load('data/sfx/walk.ogg', volume=48)
+        self.sound_array = ChannelArray(1)
+        self.walk_sound = sound.load('data/sfx/walk.ogg', volume=63)
+        self.crawl_sound = sound.load('data/sfx/crawl.ogg', volume=48)
+        self.climb_sound = sound.load('data/sfx/climb.ogg', volume=48)
+        self.bump_sound = sound.load('data/sfx/bump.ogg', volume=24)
+        self.blub_sound = sound.load('data/sfx/blub.ogg', volume=24)
 
     def set_controls(self, scene, up, down, left, right, action):
         event.remove_listeners(self.__listeners)
@@ -128,6 +132,12 @@ class Player(Sprite):
     def __on_animation_event(self, context):
         if context.event == 'walk_step':
             self.sound_array.play(self.walk_sound)
+        elif context.event == 'crawl_step':
+            self.sound_array.play(self.crawl_sound)
+        elif context.event == 'climb_step':
+            self.sound_array.play(self.climb_sound)
+        elif context.event == 'blub':
+            self.sound_array.play(self.blub_sound)
 
     def __can_switch_to_mode(self, mode, direction=None):
         if mode == 'walk':
@@ -184,8 +194,8 @@ class Player(Sprite):
             self.acceleration = (0.2, 0.6)
             self.velocity_max = (3.0, 10.0)
             self.jump_energy = 8
-        elif mode == 'crouch':
-            self.set_action('crouch_look_%s' % self.orientation)
+        elif mode == 'crawl':
+            self.set_action('crawl_look_%s' % self.orientation)
             self.acceleration = (0.2, 0.2)
             self.velocity_max = (1.0, 1.0)
             self.directions = dict(
@@ -276,7 +286,7 @@ class Player(Sprite):
                 vel_y += acc_y * 2
                 self.__switch_to_mode('climb')
             else:
-                self.__switch_to_mode('crouch')
+                self.__switch_to_mode('crawl')
         elif 'action' in active_commands:
             self.__switch_to_mode('action')
         if vel_x > 0.0:
@@ -323,6 +333,7 @@ class Player(Sprite):
         elif self.__has_barrier('up'):
             vel_y = 0.0
             # print('bumped on ceiling at: %s, %s' % (state['pos_x'], state['pos_y']))
+            self.sound_array.play(self.bump_sound)
             pos_y = state['pos_y']
             diff = int(round(pos_y / 16.0)) * 16 - pos_y
             # print(diff)
@@ -351,7 +362,7 @@ class Player(Sprite):
         state['vel_x'] = vel_x
         state['vel_y'] = vel_y
 
-    def __tick_mode_crouch(self, state):
+    def __tick_mode_crawl(self, state):
         active_commands = state['active_commands']
         vel_x = state['vel_x']
         vel_x_max = state['vel_x_max']
@@ -382,9 +393,9 @@ class Player(Sprite):
             vel_x = vel_x if vel_x >= -vel_x_max else -vel_x_max
         state['vel_x'] = vel_x
         if vel_x != 0.0:
-            state['action'] = 'crouch'
+            state['action'] = 'crawl'
         else:
-            state['action'] = 'crouch_look'
+            state['action'] = 'crawl_look'
         # If player has no ground below start falling.
         if not self.__has_ground('down'):
             self.__switch_to_mode('fall')
@@ -484,6 +495,7 @@ class Player(Sprite):
         if vel_y < 0.0 and self.__has_barrier('up'):
             vel_y = 0.0
             # print('bumped on ceiling at: %s' % ((state['pos_x'], pos_y),))
+            self.sound_array.play(self.bump_sound)
             diff = int(round(pos_y / 16.0)) * 16 - pos_y
             # print(diff)
             state['pos_y'] += diff + 1
@@ -492,6 +504,7 @@ class Player(Sprite):
             # If player is falling and has ground below...
             if vel_y >= 0.0 and self.__has_ground('down'):
                 # print('bumped on floor at: %s' % ((state['pos_x'], pos_y),))
+                self.sound_array.play(self.bump_sound)
                 # ...and velocity >= 7.0 set velocity to -y/5 and
                 if vel_y >= 7.0:
                     vel_y = -vel_y / 5
