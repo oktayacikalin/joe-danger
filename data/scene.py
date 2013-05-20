@@ -107,7 +107,6 @@ class AbstractScene(Scene):
         tilemap = TileMatrix()
         # tilemap.show_sector_coords = True
         tilemap.load_config(config_file)
-        tilemap.set_sector_size(30, 10)
         tilemap.add_to(self.root_node)
         # tilemap.set_pos(0, 550)
         self.tilemap = tilemap
