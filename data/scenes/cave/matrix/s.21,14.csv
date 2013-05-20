@@ -2,7 +2,6 @@
 1,0,5,"tilesheet/1,6"
 1,1,16,"tilesheet/8,2"
 1,1,5,"tilesheet/1,7"
-3,4,10,"tilesheet/1,2"
 2,1,5,"tilesheet/0,7"
 2,1,30,"obstacles/2,0"
 2,0,5,"tilesheet/0,6"
@@ -41,4 +40,5 @@
 2,2,11,"tilesheet/0,8"
 2,2,5,"tilesheet/0,6"
 3,3,10,"tilesheet/2,3"
+3,4,10,"tilesheet/1,2"
 2,4,10,"tilesheet/1,2"
