@@ -43,5 +43,4 @@
 2,0,8,"tilesheet/1,4"
 3,0,8,"tilesheet/1,4"
 4,0,8,"tilesheet/2,4"
-3,4,30,"obstacles/0,3"
-4,4,30,"obstacles/1,3"
+3,4,30,obstacles/wall_pit_right

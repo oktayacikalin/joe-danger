@@ -28,8 +28,8 @@
 2,3,10,"tilesheet/1,2"
 3,3,10,"tilesheet/1,2"
 4,3,10,"tilesheet/1,2"
-0,0,40,"obstacles/0,6"
-1,0,40,"obstacles/0,6"
-2,0,40,"obstacles/0,6"
-3,0,40,"obstacles/0,6"
-4,0,40,"obstacles/0,6"
+0,0,40,obstacles/lava
+1,0,40,obstacles/lava
+2,0,40,obstacles/lava
+3,0,40,obstacles/lava
+4,0,40,obstacles/lava

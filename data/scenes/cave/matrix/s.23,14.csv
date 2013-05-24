@@ -40,5 +40,5 @@
 4,4,10,"tilesheet/1,2"
 0,1,11,"tilesheet/1,8"
 1,1,11,"tilesheet/2,8"
-0,0,30,"obstacles/2,0"
-1,0,30,"obstacles/3,0"
+0,0,30,obstacles/pit_bottom
+1,0,30,obstacles/pit_bottom

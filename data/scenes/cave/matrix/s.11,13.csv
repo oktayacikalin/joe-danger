@@ -62,8 +62,8 @@
 2,4,16,"tilesheet/8,0"
 3,4,16,"tilesheet/8,0"
 4,4,16,"tilesheet/8,0"
-0,0,30,"obstacles/2,0"
-1,0,30,"obstacles/3,0"
-2,0,30,"obstacles/2,0"
-3,0,30,"obstacles/3,0"
-4,0,30,"obstacles/2,0"
+0,0,30,obstacles/pit_bottom
+1,0,30,obstacles/pit_bottom
+2,0,30,obstacles/pit_bottom
+3,0,30,obstacles/pit_bottom
+4,0,30,obstacles/pit_bottom

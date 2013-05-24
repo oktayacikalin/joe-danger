@@ -43,6 +43,5 @@
 4,2,16,"tilesheet/8,1"
 4,3,16,"tilesheet/9,0"
 4,4,16,"tilesheet/9,0"
-2,4,30,"obstacles/0,0"
-3,4,30,"obstacles/1,0"
+2,4,30,obstacles/arrow
 4,4,30,"tilesheet/10,6"

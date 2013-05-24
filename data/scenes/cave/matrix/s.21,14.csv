@@ -41,4 +41,4 @@
 4,2,11,"tilesheet/4,8"
 4,0,16,"tilesheet/9,2"
 1,1,16,"tilesheet/8,2"
-2,1,30,"obstacles/2,0"
+2,1,30,obstacles/pit_bottom

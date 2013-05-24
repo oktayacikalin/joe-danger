@@ -24,6 +24,6 @@
 2,3,10,"tilesheet/1,2"
 3,3,10,"tilesheet/1,2"
 4,3,10,"tilesheet/1,2"
-3,0,40,"obstacles/0,6"
-4,0,40,"obstacles/0,6"
-4,1,40,"obstacles/0,6"
+3,0,40,obstacles/lava
+4,0,40,obstacles/lava
+4,1,40,obstacles/lava
