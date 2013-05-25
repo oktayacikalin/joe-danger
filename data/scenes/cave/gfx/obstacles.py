@@ -14,7 +14,7 @@ from os.path import dirname, join
 # filename = join(dirname(__file__), filename)
 filename = join(dirname(__file__), 'obstacles.png')
 
-# TODO replace all tiles in map and just use the definitions below.
+# Replace all tiles in map and just use the definitions below.
 sprites = OrderedDict((
     ('arrow', {'none': [[[0, 0, 32, 16], [0, 0], [0, 0], 60]]}),
     ('pit_bottom', {'none': [[[32, 0, 16, 16], [32, 0], [0, 0], 60]]}),

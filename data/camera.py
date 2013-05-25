@@ -19,7 +19,6 @@ class Camera(object):
     def tick(self):
         screen_size = self.target.display.screen_size
         pos = self.target.pos
-        offset = -pos[0], -pos[1]
         offset = screen_size[0] / 2 - pos[0], screen_size[1] / 2 - pos[1]
         # print pos, offset
         pos = self.scene.pos
