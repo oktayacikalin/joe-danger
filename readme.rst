@@ -1,3 +1,47 @@
+About
+=====
+
+TODO
+
+License
+=======
+
+MIT (LICENSE.txt)
+
+Requirements
+============
+
+Below is a general list of the requirements.
+* Python 2.7
+* pygame 1.9.x
+* PyOpenGL 3.x
+
+Version numbers mentioned above are being used within development.
+If you successfully use it with different versions, please send me a note.
+
+Installation of requirements on Ubuntu
+======================================
+
+1. Install package python-pygame.
+2. Install PyOpenGL using pip thru sudo.
+
+Installation of requirements on OSX Lion
+========================================
+
+1. Install pygame package for OSX Lion+ (http://pygame.org/).
+2. Install PyOpenGL using pip thru sudo.
+   (If it fails, try updating pip by doing i.e. "sudo easy_install-2.7 pip" first.)
+3. Install X11/XQuartz (http://xquartz.macosforge.org/).
+
+Installation of the game
+========================
+
+1. Download code of Joe Danger (https://bitbucket.org/theblacklion/joe-danger/get/default.tar.gz).
+2. Download code of diamond framework (https://bitbucket.org/theblacklion/diamond-framework/get/default.tar.gz).
+3. Unpack *both* archives (e.g. tar xzvf *joe-danger*tar.gz).
+4. Symlink diamond framework as "diamond" into the folder of Joe Danger (next to joedng.py).
+5. ./joedng.py
+
 Player modes
 ============
 
