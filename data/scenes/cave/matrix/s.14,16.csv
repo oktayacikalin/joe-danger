@@ -1,6 +1,6 @@
-4,0,1,"passability/2,0"
-4,1,1,"passability/2,0"
-4,2,1,"passability/3,0"
+4,0,1,passability/climb
+4,1,1,passability/climb
+4,2,1,passability/platform
 0,0,5,"tilesheet/0,6"
 1,0,5,"tilesheet/1,6"
 2,0,5,"tilesheet/0,6"

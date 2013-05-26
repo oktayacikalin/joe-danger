@@ -1,7 +1,7 @@
-0,0,1,"passability/0,0"
-1,0,1,"passability/0,0"
-2,0,1,"passability/0,0"
-3,0,1,"passability/0,0"
+0,0,1,passability/wall
+1,0,1,passability/wall
+2,0,1,passability/wall
+3,0,1,passability/wall
 0,0,5,"tilesheet/1,6"
 1,0,5,"tilesheet/0,6"
 2,0,5,"tilesheet/1,6"

@@ -1,8 +1,8 @@
-0,4,1,"passability/1,0"
-1,4,1,"passability/1,0"
-2,4,1,"passability/3,0"
-3,4,1,"passability/3,0"
-4,4,1,"passability/3,0"
+0,4,1,passability/climb_platform
+1,4,1,passability/climb_platform
+2,4,1,passability/platform
+3,4,1,passability/platform
+4,4,1,passability/platform
 0,0,5,"tilesheet/0,6"
 1,0,5,"tilesheet/1,6"
 2,0,5,"tilesheet/0,6"

@@ -240,18 +240,18 @@ class Player(Sprite):
 
     def __has_barrier(self, direction):
         ids = self.__get_tiles(direction)
-        return 'passability/0,0' in ids
+        return 'passability/wall' in ids
 
     def __has_platform(self, direction):
         ids = self.__get_tiles(direction)
-        return 'passability/1,0' in ids or 'passability/3,0' in ids
+        return 'passability/climb_platform' in ids or 'passability/platform' in ids
 
     def __has_ground(self, direction):
         return self.__has_barrier(direction) or self.__has_platform(direction)
 
     def __has_climb(self, direction):
         ids = self.__get_tiles(direction)
-        return 'passability/1,0' in ids or 'passability/2,0' in ids
+        return 'passability/climb_platform' in ids or 'passability/climb' in ids
 
     def __tick_mode_walk(self, state):
         active_commands = state['active_commands']

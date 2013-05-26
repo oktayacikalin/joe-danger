@@ -1,4 +1,5 @@
-1,2,1,"passability/0,0"
+1,2,1,passability/wall
+2,2,1,passability/wall
 0,0,5,"tilesheet/0,7"
 1,0,5,"tilesheet/1,7"
 2,0,5,"tilesheet/0,7"
