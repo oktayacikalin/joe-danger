@@ -71,11 +71,11 @@ class AbstractScene(Scene):
             action=K_SPACE,
         ))
         # Add player tick method to camera ticker to be in sync.
-        self.camera_ticker.add(player.tick, 15)
+        self.camera_ticker.add(player.tick, 16)
 
         # Setup camera.
         self.camera = Camera(tilemap, player)
-        self.camera_ticker.add(self.camera.tick, 15)
+        self.camera_ticker.add(self.camera.tick, 16)
 
         player.setup_passability_layer(tilemap, 1)  # TODO query matrix for layer "passability"
         # Now put player in hands of scene itself. It will call teardown later on.
