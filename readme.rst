@@ -26,6 +26,12 @@ Installation of requirements on Ubuntu
 1. Install package python-pygame.
 2. Install PyOpenGL using pip thru sudo.
 
+Installation of requirements on Fedora Core 18
+==============================================
+
+1. Install package pygame.
+2. Install package PyOpenGL.
+
 Installation of requirements on OSX Lion
 ========================================
 
@@ -43,8 +49,8 @@ Installation of the game
 4. Symlink diamond framework as "diamond" into the folder of Joe Danger (next to joedng.py).
 5. ./joedng.py
 
-Player modes
-============
+Player modes (technical)
+========================
 
 The player can have one of the following modes:
 
