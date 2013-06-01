@@ -14,7 +14,9 @@ from diamond.tilematrix import TileMatrix
 from diamond.transition import TransitionManager
 from diamond.ticker import Ticker
 from diamond.node import Node
+from diamond.sprite import Sprite
 from diamond.fps import Fps
+from diamond import event
 
 from data.player import Player
 from data.camera import Camera
@@ -35,11 +37,15 @@ class AbstractScene(Scene):
         fps.set_align_box(self.display_layout['screen_size'][0], 0, 'right')
         fps_node.set_order_pos(10)
 
+    def __hide_passability(self):
+        layer = self.tilemap.get_layer(self.layer_names['passability'], auto_create=True)
+        layer.hide()
+
     def __setup_player(self):
         tilemap = self.tilemap
 
         # Search for possible entry points.
-        player_entry_points = tilemap.find_in_matrix('player')
+        player_entry_points = tilemap.find_in_matrix_by_tilesheet('player')
         if not player_entry_points:
             raise Exception('Missing player char in tilemap!')
         # Decide for one entry point.
@@ -59,8 +65,7 @@ class AbstractScene(Scene):
         # Add it to the matrix.
         tilemap.get_layer(pos[2], auto_create=True).add(player)
         # Setup player position and orientation.
-        t_w, t_h = tilemap.get_tile_size()
-        player.pos = t_w * pos[0], t_h * pos[1]
+        player.pos = tilemap.translate_to_pos(*pos[:2])
         player.orientation = 'right'
         # Setup player controls.
         player.set_controls(self, **dict(
@@ -77,18 +82,86 @@ class AbstractScene(Scene):
         self.camera = Camera(tilemap, player)
         self.camera_ticker.add(self.camera.tick, 16)
 
-        player.setup_passability_layer(tilemap, 1)  # TODO query matrix for layer "passability"
+        player.setup_passability_layer(tilemap, self.layer_names['passability'])
         # Now put player in hands of scene itself. It will call teardown later on.
         self.manage(player)
 
-    def __hide_passability(self):
-        for name in self.layer_names:
-            if name != 'passability':
+    def __add_obstacles_to_sector(self, context):
+        sector = context
+        sector_pos = sector.get_sector_pos()
+        obstacles = self.sector_obstacles.get(sector_pos, [])
+        # print obstacles
+        tilemap = self.tilemap
+        vault = tilemap.get_sheet('obstacles')
+        new_sprites = {}
+        new_layers = {}
+        # Group sprites by id for faster generation.
+        for x, y, z, id in obstacles:
+            pos = (tilemap.translate_to_pos(x, y), z)
+            try:
+                new_sprites[id].append(pos)
+            except KeyError:
+                new_sprites[id] = [pos]
+        # Create all sprites.
+        for id, sprites in new_sprites.iteritems():
+            _sprites = Sprite.make_many(vault, id, len(sprites))
+            # print 'generated new sprites:', _sprites
+            for pos, z in sprites:
+                sprite = _sprites.pop()
+                sprite.pos = pos
+                try:
+                    new_layers[z].append(sprite)
+                except KeyError:
+                    new_layers[z] = [sprite]
+        # Add them to the layers.
+        for z, sprites in new_layers.iteritems():
+            # print 'adding %s to layer %s' % (sprites, z)
+            tilemap.get_layer(z, auto_create=True).add_children(sprites)
+        # And save the list for later removal.
+        self.active_sector_obstacles[sector_pos] = new_layers
+
+    def __remove_obstacles_from_sector(self, context):
+        sector = context
+        sector_pos = sector.get_sector_pos()
+        tilemap = self.tilemap
+        for z, sprites in self.active_sector_obstacles[sector_pos].iteritems():
+            # print 'removing %s from layer %s' % (sprites, z)
+            tilemap.get_layer(z, auto_create=True).remove_children(sprites)
+        del self.active_sector_obstacles[sector_pos]
+
+    def __setup_obstacles(self):
+        tilemap = self.tilemap
+        obstacles = {}
+        # Search for obstacles.
+        obst_coords = tilemap.find_in_matrix_by_tilesheet('obstacles')
+        # print obst_coords
+        # Now remove them from the map.
+        # TODO move tile "lava" into normal tilesheet and remove filtering here.
+        tiles_to_remove = []
+        tilemap__translate_to_sector_pos = tilemap.translate_to_sector_pos
+        tilemap__get_sector_pos = tilemap.get_sector_pos
+        for obst in obst_coords:
+            x, y, z, id = obst
+            if id == 'lava':
                 continue
-            layer = self.tilemap.get_layer(self.layer_names[name], auto_create=True)
-            if layer is not None:
-                layer.hide()
-                break
+            # print obst
+            tiles_to_remove.append(([x, y, z, None]))
+            key = tilemap__get_sector_pos(x, y)
+            # x, y = tilemap__translate_to_sector_pos(x, y)
+            obst = [x, y, z, id]
+            try:
+                obstacles[key].append(obst)
+            except KeyError:
+                obstacles[key] = [obst]
+        tilemap.set_tiles_at(tiles_to_remove)
+        # And cache them for later "recovery".
+        self.sector_obstacles = obstacles
+        self.active_sector_obstacles = {}
+        # print obstacles
+        self.bind(
+            event.add_listener(self.__add_obstacles_to_sector, 'tilematrix.sector.created.after'),
+            event.add_listener(self.__remove_obstacles_from_sector, 'tilematrix.sector.dropped.before'),
+        )
 
     def setup(self, display_layout, data_path):
         super(AbstractScene, self).setup()
@@ -107,7 +180,6 @@ class AbstractScene(Scene):
         tilemap = TileMatrix()
         # tilemap.show_sector_coords = True
         tilemap.load_config(config_file)
-        tilemap.add_to(self.root_node)
         # tilemap.set_pos(0, 550)
         self.tilemap = tilemap
 
@@ -118,5 +190,7 @@ class AbstractScene(Scene):
 
         self.__hide_passability()
         self.__setup_player()
+        self.__setup_obstacles()
 
+        tilemap.add_to(self.root_node)
         # TODO implement prefetching of tilemap sectors if event display.update.cpu_is_idle is being emitted.
