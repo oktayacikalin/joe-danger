@@ -598,4 +598,4 @@ class Player(Sprite):
 
         if pos_dirty:
             self.float_pos = (pos_x, pos_y)
-            self.set_pos(*map(int, self.float_pos))
+            self.set_pos(*map(int, map(round, self.float_pos)))
