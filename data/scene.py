@@ -76,11 +76,11 @@ class AbstractScene(Scene):
             action=K_SPACE,
         ))
         # Add player tick method to camera ticker to be in sync.
-        self.camera_ticker.add(player.tick, 16)
+        self.camera_ticker.add(player.tick, 15)
 
         # Setup camera.
         self.camera = Camera(tilemap, player)
-        self.camera_ticker.add(self.camera.tick, 16)
+        self.camera_ticker.add(self.camera.tick, 15)
 
         player.setup_passability_layer(tilemap, self.layer_names['passability'])
         # Now put player in hands of scene itself. It will call teardown later on.
@@ -138,7 +138,6 @@ class AbstractScene(Scene):
         # Now remove them from the map.
         # TODO move tile "lava" into normal tilesheet and remove filtering here.
         tiles_to_remove = []
-        tilemap__translate_to_sector_pos = tilemap.translate_to_sector_pos
         tilemap__get_sector_pos = tilemap.get_sector_pos
         for obst in obst_coords:
             x, y, z, id = obst
@@ -147,7 +146,6 @@ class AbstractScene(Scene):
             # print obst
             tiles_to_remove.append(([x, y, z, None]))
             key = tilemap__get_sector_pos(x, y)
-            # x, y = tilemap__translate_to_sector_pos(x, y)
             obst = [x, y, z, id]
             try:
                 obstacles[key].append(obst)
