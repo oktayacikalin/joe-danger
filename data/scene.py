@@ -16,6 +16,7 @@ from diamond.ticker import Ticker
 from diamond.node import Node
 from diamond.sprite import Sprite
 from diamond.fps import Fps
+from diamond.collision import Collision
 from diamond import event
 
 from data.player import Player
@@ -40,6 +41,16 @@ class AbstractScene(Scene):
     def __hide_passability(self):
         layer = self.tilemap.get_layer(self.layer_names['passability'], auto_create=True)
         layer.hide()
+
+    def __collision_state_changed(self, context):
+        print(context)
+
+    def __setup_collision_detection(self):
+        self.collision = Collision()
+        self.ticker.add(self.collision.tick, 60)
+        self.bind(
+            event.add_listener(self.__collision_state_changed, 'collision.state.changed'),
+        )
 
     def __setup_player(self):
         tilemap = self.tilemap
@@ -83,6 +94,10 @@ class AbstractScene(Scene):
         self.camera_ticker.add(self.camera.tick, 15)
 
         player.setup_passability_layer(tilemap, self.layer_names['passability'])
+
+        # Put player into collision detection.
+        self.collision.set_source(player)
+
         # Now put player in hands of scene itself. It will call teardown later on.
         self.manage(player)
 
@@ -117,6 +132,7 @@ class AbstractScene(Scene):
         for z, sprites in new_layers.iteritems():
             # print 'adding %s to layer %s' % (sprites, z)
             tilemap.get_layer(z, auto_create=True).add_children(sprites)
+            self.collision.add_targets(sprites)
         # And save the list for later removal.
         self.active_sector_obstacles[sector_pos] = new_layers
 
@@ -127,6 +143,7 @@ class AbstractScene(Scene):
         for z, sprites in self.active_sector_obstacles[sector_pos].iteritems():
             # print 'removing %s from layer %s' % (sprites, z)
             tilemap.get_layer(z, auto_create=True).remove_children(sprites)
+            self.collision.remove_targets(sprites)
         del self.active_sector_obstacles[sector_pos]
 
     def __setup_obstacles(self):
@@ -187,6 +204,7 @@ class AbstractScene(Scene):
         # print self.layer_names
 
         self.__hide_passability()
+        self.__setup_collision_detection()
         self.__setup_player()
         self.__setup_obstacles()
 
