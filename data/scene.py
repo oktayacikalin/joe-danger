@@ -44,6 +44,10 @@ class AbstractScene(Scene):
 
     def __collision_state_changed(self, context):
         print(context)
+        if context['targets']:
+            context['source'].set_tint(r=100, g=50, b=50)
+        else:
+            context['source'].set_tint(r=100, g=100, b=100)
 
     def __setup_collision_detection(self):
         self.collision = Collision()
