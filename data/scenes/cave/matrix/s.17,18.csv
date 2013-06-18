@@ -38,3 +38,5 @@
 2,2,16,"tilesheet/9,0"
 2,3,16,"tilesheet/9,0"
 2,4,16,"tilesheet/9,0"
+2,0,30,obstacles/wall_pit_left
+2,4,30,obstacles/wall_pit_left
