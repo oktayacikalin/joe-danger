@@ -43,17 +43,46 @@ class AbstractScene(Scene):
         layer.hide()
 
     def __collision_state_changed(self, context):
-        print(context)
-        if context['targets']:
-            context['source'].set_tint(r=100, g=50, b=50)
+        # print(context)
+        player = context['source']
+        targets = filter(lambda item: not item.is_hidden, context['targets'])
+        if targets:
+            player.set_tint(r=100, g=50, b=50)
+            p_rect = player.get_bounding_rect()
+            # print(p_rect)
+            p_x, p_y = p_rect.center
+            # print(p_x, p_y)
+            vel_x, vel_y = player.velocity
+            vel_x_max, vel_y_max = 3.0, 3.0  # player.velocity_max
+            vel_x, vel_y = 0.0, 0.0
+            for target in targets:
+                name = target.vault.name
+                # print(name)
+                t_rect = target.get_bounding_rect()
+                # print(t_rect)
+                t_x, t_y = t_rect.center
+                d_x, d_y = p_x - t_x, p_y - t_y
+                if name == 'wall_pit_left':
+                    d_x = abs(d_x)
+                elif name == 'wall_pit_right':
+                    d_x = abs(d_x) * -1
+                # print(d_x, d_y)
+                vel_x += d_x
+                vel_y += d_y
+            if vel_x:
+                vel_x = (min(abs(vel_x), vel_x_max)) * (vel_x / abs(vel_x))
+            if vel_y:
+                vel_y = (min(abs(vel_y), vel_y_max)) * (vel_y / abs(vel_y))
+            player.velocity = vel_x, vel_y
+            player.switch_to_mode('fall')
         else:
-            context['source'].set_tint(r=100, g=100, b=100)
+            player.set_tint(r=100, g=100, b=100)
 
     def __setup_collision_detection(self):
         self.collision = Collision()
-        self.ticker.add(self.collision.tick, 60)
+        self.ticker.add(self.collision.tick, 16)
         self.bind(
-            event.add_listener(self.__collision_state_changed, 'collision.state.changed'),
+            event.add_listener(self.__collision_state_changed, 'collision.state'),
         )
 
     def __setup_player(self):
@@ -123,7 +152,8 @@ class AbstractScene(Scene):
                 new_sprites[id] = [pos]
         # Create all sprites.
         for id, sprites in new_sprites.iteritems():
-            _sprites = Sprite.make_many(vault, id, len(sprites))
+            cls = self._obstacle_classes.get(id, Sprite)
+            _sprites = cls.make_many(vault, id, len(sprites))
             # print 'generated new sprites:', _sprites
             for pos, z in sprites:
                 sprite = _sprites.pop()
@@ -176,6 +206,7 @@ class AbstractScene(Scene):
         # And cache them for later "recovery".
         self.sector_obstacles = obstacles
         self.active_sector_obstacles = {}
+        self._obstacle_classes = {}
         # print obstacles
         self.bind(
             event.add_listener(self.__add_obstacles_to_sector, 'tilematrix.sector.created.after'),
