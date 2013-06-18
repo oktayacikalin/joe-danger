@@ -11,6 +11,8 @@ from os.path import dirname
 from data.scene import AbstractScene
 
 # import music
+from obstacle.wall_pit_left import WallPitLeft
+from obstacle.wall_pit_right import WallPitRight
 
 
 class CaveScene(AbstractScene):
@@ -23,3 +25,8 @@ class CaveScene(AbstractScene):
         # music_.play()
         # music_.set_volume(50)
         # self.bind(music_)
+
+        self._obstacle_classes.update(dict(
+            wall_pit_left=WallPitLeft,
+            wall_pit_right=WallPitRight,
+        ))
