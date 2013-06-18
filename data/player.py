@@ -70,6 +70,8 @@ class Player(Sprite):
             event.add_listener(self.__on_animation_event,
                                'sprite.animation.event',
                                context__sprite__is=self),
+            event.add_listener(self.__on_get_status_event,
+                               'player.get_status'),
         ]
 
     def setup_passability_layer(self, tilematrix, level):
@@ -138,6 +140,12 @@ class Player(Sprite):
             self.sound_array.play(self.climb_sound)
         elif context.event == 'blub':
             self.sound_array.play(self.blub_sound)
+
+    def __on_get_status_event(self, context):
+        if context == 'rect':
+            return self.get_rect()
+        else:
+            raise NotImplemented()
 
     def __can_switch_to_mode(self, mode, direction=None):
         if mode == 'walk':
@@ -216,10 +224,13 @@ class Player(Sprite):
         elif mode == 'fall':
             self.set_action('fall_%s' % self.orientation)
             self.acceleration = (0.2, 0.3)
-            self.velocity_max = (3.0, 15.0)
+            self.velocity_max = (10.0, 15.0)
         else:
             raise Exception('Unknown mode: %s' % mode)
         self.mode = mode
+
+    def switch_to_mode(self, mode):
+        self.__switch_to_mode(mode)
 
     def __get_tiles(self, direction, off_x=0.0, off_y=0.0):
         pos_x, pos_y = self.float_pos
@@ -465,11 +476,17 @@ class Player(Sprite):
         acc_x = state['acc_x']
         acc_y = state['acc_y']
         if 'left' in active_commands:
-            vel_x -= acc_x
+            if vel_x > -3.0:
+                vel_x -= acc_x
+                if vel_x < -3.0:
+                    vel_x = -3.0
             self.orientation = 'left'
             state['action'] = 'jump'
         elif 'right' in active_commands:
-            vel_x += acc_x
+            if vel_x < 3.0:
+                vel_x += acc_x
+                if vel_x > 3.0:
+                    vel_x = 3.0
             self.orientation = 'right'
             state['action'] = 'jump'
         elif not self.__has_ground('slip_down_left') and self.__has_ground('down_right'):
@@ -478,9 +495,9 @@ class Player(Sprite):
             vel_x += acc_x
         else:
             if vel_x < 0.0:
-                vel_x += acc_x / 2.0
+                vel_x += acc_x / 4.0
             elif vel_x > 0.0:
-                vel_x -= acc_x / 2.0
+                vel_x -= acc_x / 4.0
             vel_x = float(int(vel_x * 10.0)) / 10.0
         if 'up' in active_commands:
             if self.__can_switch_to_mode('climb', 'center'):
