@@ -1,3 +1,4 @@
+0,0,1,passability/wall
 0,1,1,passability/wall
 4,1,1,passability/wall
 0,2,1,passability/wall
@@ -39,9 +40,10 @@
 2,4,8,"tilesheet/1,2"
 3,4,8,"tilesheet/1,2"
 4,4,8,"tilesheet/1,2"
-0,1,10,"tilesheet/3,6"
+0,0,10,"tilesheet/3,10"
+0,1,10,"tilesheet/3,11"
 4,1,10,"tilesheet/0,0"
-0,2,10,"tilesheet/3,7"
+0,2,10,"tilesheet/3,12"
 4,2,10,"tilesheet/0,1"
 0,3,10,"tilesheet/2,0"
 4,3,10,"tilesheet/0,1"
