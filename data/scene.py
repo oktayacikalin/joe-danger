@@ -14,13 +14,13 @@ from diamond.tilematrix import TileMatrix
 from diamond.transition import TransitionManager
 from diamond.ticker import Ticker
 from diamond.node import Node
-from diamond.sprite import Sprite
 from diamond.fps import Fps
 from diamond.collision import Collision
 from diamond import event
 
 from data.player import Player
 from data.camera import Camera
+from data.obstacle import SectorObstacle
 from data.gfx import player as player_gfx
 
 
@@ -63,9 +63,9 @@ class AbstractScene(Scene):
                 t_x, t_y = t_rect.center
                 d_x, d_y = p_x - t_x, p_y - t_y
                 if name == 'wall_pit_left':
-                    d_x = abs(d_x)
+                    d_x = max(1, abs(d_x))
                 elif name == 'wall_pit_right':
-                    d_x = abs(d_x) * -1
+                    d_x = min(-1, abs(d_x) * -1)
                 # print(d_x, d_y)
                 vel_x += d_x
                 vel_y += d_y
@@ -152,7 +152,7 @@ class AbstractScene(Scene):
                 new_sprites[id] = [pos]
         # Create all sprites.
         for id, sprites in new_sprites.iteritems():
-            cls = self._obstacle_classes.get(id, Sprite)
+            cls = self._obstacle_classes.get(id, SectorObstacle)
             _sprites = cls.make_many(vault, id, len(sprites))
             # print 'generated new sprites:', _sprites
             for pos, z in sprites:
@@ -167,18 +167,27 @@ class AbstractScene(Scene):
             # print 'adding %s to layer %s' % (sprites, z)
             tilemap.get_layer(z, auto_create=True).add_children(sprites)
             self.collision.add_targets(sprites)
-        # And save the list for later removal.
-        self.active_sector_obstacles[sector_pos] = new_layers
+            [sprite.set_sector_pos(sector_pos) for sprite in sprites]
 
     def __remove_obstacles_from_sector(self, context):
         sector = context
         sector_pos = sector.get_sector_pos()
-        tilemap = self.tilemap
-        for z, sprites in self.active_sector_obstacles[sector_pos].iteritems():
-            # print 'removing %s from layer %s' % (sprites, z)
-            tilemap.get_layer(z, auto_create=True).remove_children(sprites)
+        # Let's search for sprites to be removed.
+        results = event.emit('playfield.sector.obstacles.clean_up', sector_pos)
+        # Extract objects of event methods.
+        sprites = [meth.im_self for meth, ret in results]
+        # Group them by layer.
+        groups = dict()
+        for sprite in sprites:
+            try:
+                groups[sprite.parent_node].append(sprite)
+            except KeyError:
+                groups[sprite.parent_node] = [sprite]
+        # Clean everything up.
+        for layer, sprites in groups.iteritems():
+            # print 'removing %s from layer %s' % (sprites, layer)
+            layer.remove_children(sprites)
             self.collision.remove_targets(sprites)
-        del self.active_sector_obstacles[sector_pos]
 
     def __setup_obstacles(self):
         tilemap = self.tilemap
@@ -205,7 +214,6 @@ class AbstractScene(Scene):
         tilemap.set_tiles_at(tiles_to_remove)
         # And cache them for later "recovery".
         self.sector_obstacles = obstacles
-        self.active_sector_obstacles = {}
         self._obstacle_classes = {}
         # print obstacles
         self.bind(

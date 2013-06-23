@@ -9,10 +9,10 @@ from diamond import event
 from diamond.sound import Sound, ChannelArray
 from diamond.effects import TransitionEffects
 
-from data.obstacle import AbstractObstacle
+from data.obstacle import SectorObstacle
 
 
-class WallPitRight(AbstractObstacle):
+class WallPitRight(SectorObstacle):
 
     def __init__(self, *args, **kwargs):
         super(WallPitRight, self).__init__(*args, **kwargs)
@@ -33,13 +33,13 @@ class WallPitRight(AbstractObstacle):
         self.return_sound = sound.load('data/scenes/cave/sfx/nails.ogg', volume=90)
 
     def __del__(self):
-        self.ticker.join()
         self.transition_manager.join()
+        self.ticker.join()
         super(WallPitRight, self).__del__()
 
     def on_node_removed(self, *args, **kwargs):
-        self.ticker.clear()
         self.transition_manager.clear()
+        self.ticker.clear()
         super(WallPitRight, self).on_node_removed(*args, **kwargs)
 
     def __hide(self):
