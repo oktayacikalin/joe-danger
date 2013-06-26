@@ -550,6 +550,11 @@ class Player(Sprite):
         state['vel_x'] = vel_x
         state['vel_y'] = vel_y
 
+    def set_pos(self, x, y):
+        self.float_pos = (x, y)
+        self.velocity = (0.0, 0.0)
+        super(Player, self).set_pos(x, y)
+
     def tick(self):
         active_commands = self.active_commands.copy()  # Don't break code above.
 
@@ -615,4 +620,4 @@ class Player(Sprite):
 
         if pos_dirty:
             self.float_pos = (pos_x, pos_y)
-            self.set_pos(*map(int, map(round, self.float_pos)))
+            super(Player, self).set_pos(*map(int, map(round, self.float_pos)))

@@ -47,7 +47,6 @@ class AbstractScene(Scene):
         player = context['source']
         targets = filter(lambda item: not item.is_hidden, context['targets'])
         if targets:
-            player.set_tint(r=100, g=50, b=50)
             p_rect = player.get_bounding_rect()
             # print(p_rect)
             p_x, p_y = p_rect.center
@@ -73,8 +72,11 @@ class AbstractScene(Scene):
                 vel_x = (min(abs(vel_x), vel_x_max)) * (vel_x / abs(vel_x))
             if vel_y:
                 vel_y = (min(abs(vel_y), vel_y_max)) * (vel_y / abs(vel_y))
+            player.set_tint(r=100, g=50, b=50)
             player.velocity = vel_x, vel_y
             player.switch_to_mode('fall')
+            self.energy -= 10
+            event.emit('player.energy.changed', player)
         else:
             player.set_tint(r=100, g=100, b=100)
 
@@ -84,6 +86,17 @@ class AbstractScene(Scene):
         self.bind(
             event.add_listener(self.__collision_state_changed, 'collision.state'),
         )
+
+    def __on_player_energy_changed(self, context):
+        player = context
+        print('energy = %d' % self.energy)
+
+        if self.energy <= 0:
+            print('player dies. respawn.')
+            self.energy = 100
+            pep = self.last_player_entry_point
+            pos = pep[:3]
+            player.set_pos(*self.tilemap.translate_to_pos(*pos[:2]))
 
     def __setup_player(self):
         tilemap = self.tilemap
@@ -98,11 +111,12 @@ class AbstractScene(Scene):
         pos = pep[:3]
         tile_id = pep[3]
         print('Found entry point with tile_id %s at: %s' % (tile_id, pos))
+        # Save the list for later (e.g. respawn)
+        self.last_player_entry_point = pep
+        self.player_entry_points = player_entry_points
         # And now remove all entry point tiles from view.
         for pep in player_entry_points:
             tilemap.set_tiles_at([(pep[:3] + [None])])
-        # Save the list for later (e.g. respawn)
-        self.player_entry_points = player_entry_points
 
         # Create player object.
         player = Player.make(player_gfx, 'default')
@@ -133,6 +147,12 @@ class AbstractScene(Scene):
 
         # Now put player in hands of scene itself. It will call teardown later on.
         self.manage(player)
+
+        self.energy = 100
+        self.bind(
+            event.add_listener(self.__on_player_energy_changed, 'player.energy.changed'),
+        )
+        event.emit('player.energy.changed', player)
 
     def __add_obstacles_to_sector(self, context):
         sector = context
@@ -179,6 +199,8 @@ class AbstractScene(Scene):
         # Group them by layer.
         groups = dict()
         for sprite in sprites:
+            if not sprite.parent_node:
+                continue
             try:
                 groups[sprite.parent_node].append(sprite)
             except KeyError:
