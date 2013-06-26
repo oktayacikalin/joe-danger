@@ -17,8 +17,8 @@ from obstacle.wall_pit_right import WallPitRight
 
 class CaveScene(AbstractScene):
 
-    def setup(self, display_layout):
-        super(CaveScene, self).setup(display_layout, dirname(__file__))
+    def setup(self):
+        super(CaveScene, self).setup(dirname(__file__))
 
         # music_ = Music()
         # music_.add(music)

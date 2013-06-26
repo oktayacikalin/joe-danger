@@ -35,7 +35,8 @@ class AbstractScene(Scene):
         fps.set_background_color(0, 0, 0, 230)
         fps.set_background_border(3)
         fps.add_to(fps_node)
-        fps.set_align_box(self.display_layout['screen_size'][0], 0, 'right')
+        width = self.root_node.display.screen_size[0]
+        fps.set_align_box(width, 0, 'right')
         fps_node.set_order_pos(10)
 
     def __hide_passability(self):
@@ -243,9 +244,8 @@ class AbstractScene(Scene):
             event.add_listener(self.__remove_obstacles_from_sector, 'tilematrix.sector.dropped.before'),
         )
 
-    def setup(self, display_layout, data_path):
+    def setup(self, data_path):
         super(AbstractScene, self).setup()
-        self.display_layout = display_layout
         self.add_default_listeners()
         self.ticker = Ticker()
         self.camera_ticker = Ticker()
