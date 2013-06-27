@@ -181,3 +181,13 @@ None.
 7.3 Exit indicators
 
 * If animation is done, respawn on last save point.
+
+Known bugs
+==========
+
+* Screen autosizing with multi monitor setup unuseable.
+  The game asks the engine to adapt to your current screen size. It will try to
+  stretch it horizontally and reduce its size vertically to create a fullscreen
+  experience on all screens. When using a multi monitor setup it might try to
+  use both screens which will result in strange gameplay and a performance
+  brakedown.
