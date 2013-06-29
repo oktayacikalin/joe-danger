@@ -30,4 +30,9 @@
 4,3,10,"tilesheet/1,2"
 0,0,11,"tilesheet/7,5"
 1,0,11,"tilesheet/8,5"
+0,1,11,"tilesheet/2,8"
+1,1,11,"tilesheet/3,8"
+2,1,11,"tilesheet/0,8"
+3,1,11,"tilesheet/3,8"
+4,1,11,"tilesheet/2,8"
 2,0,30,obstacles/stones

@@ -27,6 +27,9 @@
 2,3,10,"tilesheet/1,2"
 3,3,10,"tilesheet/1,2"
 4,3,10,"tilesheet/1,2"
+2,1,11,"tilesheet/1,8"
+3,1,11,"tilesheet/2,8"
+4,1,11,"tilesheet/0,8"
 2,0,16,"tilesheet/9,0"
 2,0,30,obstacles/pit_bottom
 3,0,30,obstacles/pit_bottom
