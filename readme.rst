@@ -191,3 +191,7 @@ Known bugs
   experience on all screens. When using a multi monitor setup it might try to
   use both screens which will result in strange gameplay and a performance
   brakedown.
+* In the tilematrix editor when changing the sector size in the tilesheet view,
+  the rebuild afterwards tends to crash pygame. This is reproducible when
+  activating the display of the sector coords. Also the selection does not show
+  up properly anymore. It appears only in the old sector area.
