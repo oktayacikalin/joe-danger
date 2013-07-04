@@ -13,6 +13,7 @@ from data.scene import AbstractScene
 # import music
 from obstacle.wall_pit_left import WallPitLeft
 from obstacle.wall_pit_right import WallPitRight
+from obstacle.arrow import Arrow
 
 
 class CaveScene(AbstractScene):
@@ -29,4 +30,5 @@ class CaveScene(AbstractScene):
         self._obstacle_classes.update(dict(
             wall_pit_left=WallPitLeft,
             wall_pit_right=WallPitRight,
+            arrow=Arrow,
         ))

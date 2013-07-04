@@ -23,7 +23,7 @@ class WallPitLeft(SectorObstacle):
         self.hide()
         self.is_collapsed = True
         self.listeners.extend([
-            event.add_listener(self.__collision_state,
+            event.add_listener(self.__on_collision_state,
                                'collision.state',
                                context__targets__contains=self),
         ])
@@ -54,7 +54,7 @@ class WallPitLeft(SectorObstacle):
         self.transition_manager.move_by(self, pos=(-32, 0), msecs=1000)
         self.transition_manager.add_change(self.__hide)
 
-    def __collision_state(self, context):
+    def __on_collision_state(self, context):
         # print '***', context
         rect = self.get_bounding_rect()
         # print rect, self.get_rect()

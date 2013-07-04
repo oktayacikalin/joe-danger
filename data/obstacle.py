@@ -14,10 +14,28 @@ class AbstractObstacle(Sprite):
     def __init__(self, *args, **kwargs):
         super(AbstractObstacle, self).__init__(*args, **kwargs)
         self._sector_pos = None
+        self._tilematrix = None
+        self._is_sector_visible = False
 
-    def set_sector_pos(self, sector_pos):
-        self._sector_pos = sector_pos
-        # print self, 'set sector pos', sector_pos
+    def _on_playfield_sector_created_after_event(self, context):
+        self._is_sector_visible = True
+
+    def _on_playfield_sector_dropped_before_event(self, context):
+        self._is_sector_visible = False
+
+    def setup(self):
+        self.listeners.extend([
+            event.add_listener(
+                self._on_playfield_sector_created_after_event,
+                'playfield.sector.created.after',
+                context__get_sector_pos__returns=self._sector_pos,
+            ),
+            event.add_listener(
+                self._on_playfield_sector_dropped_before_event,
+                'playfield.sector.dropped.before',
+                context__get_sector_pos__returns=self._sector_pos,
+            ),
+        ])
 
 
 class StickyObstacle(AbstractObstacle):
@@ -29,16 +47,16 @@ class StickyObstacle(AbstractObstacle):
 class SectorObstacle(AbstractObstacle):
     """Obstacle which is being cleanup up when its sector vanishes."""
 
-    def set_sector_pos(self, sector_pos):
-        super(SectorObstacle, self).set_sector_pos(sector_pos)
+    def _on_teardown_event(self, context):
+        # print self, self._sector_pos, context, self._sector_pos == context
+        return True
+
+    def setup(self):
+        super(SectorObstacle, self).setup()
         self.listeners.extend([
             event.add_listener(
                 self._on_teardown_event,
                 'playfield.sector.obstacles.clean_up',
-                context__eq=sector_pos,
+                context__eq=self._sector_pos,
             ),
         ])
-
-    def _on_teardown_event(self, context):
-        # print self, self._sector_pos, context, self._sector_pos == context
-        return True

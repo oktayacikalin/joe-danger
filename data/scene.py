@@ -40,7 +40,7 @@ class AbstractScene(Scene):
         fps_node.set_order_pos(10)
 
     def __hide_passability(self):
-        layer = self.tilemap.get_layer(self.layer_names['passability'], auto_create=True)
+        layer = self.tilematrix.get_layer(self.layer_names['passability'], auto_create=True)
         layer.hide()
 
     def __collision_state_changed(self, context):
@@ -97,15 +97,15 @@ class AbstractScene(Scene):
             self.energy = 100
             pep = self.last_player_entry_point
             pos = pep[:3]
-            player.set_pos(*self.tilemap.translate_to_pos(*pos[:2]))
+            player.set_pos(*self.tilematrix.translate_to_pos(*pos[:2]))
 
     def __setup_player(self):
-        tilemap = self.tilemap
+        tilematrix = self.tilematrix
 
         # Search for possible entry points.
-        player_entry_points = tilemap.find_in_matrix_by_tilesheet('player')
+        player_entry_points = tilematrix.find_in_matrix_by_tilesheet('player')
         if not player_entry_points:
-            raise Exception('Missing player char in tilemap!')
+            raise Exception('Missing player char in tilematrix!')
         # Decide for one entry point.
         # TODO for now we just take the first one.
         pep = player_entry_points[0]
@@ -117,14 +117,14 @@ class AbstractScene(Scene):
         self.player_entry_points = player_entry_points
         # And now remove all entry point tiles from view.
         for pep in player_entry_points:
-            tilemap.set_tiles_at([(pep[:3] + [None])])
+            tilematrix.set_tiles_at([(pep[:3] + [None])])
 
         # Create player object.
         player = Player.make(player_gfx, 'default')
         # Add it to the matrix.
-        tilemap.get_layer(pos[2], auto_create=True).add(player)
+        tilematrix.get_layer(pos[2], auto_create=True).add(player)
         # Setup player position and orientation.
-        player.pos = tilemap.translate_to_pos(*pos[:2])
+        player.pos = tilematrix.translate_to_pos(*pos[:2])
         player.orientation = 'right'
         # Setup player controls.
         player.set_controls(self, **dict(
@@ -138,10 +138,10 @@ class AbstractScene(Scene):
         self.camera_ticker.add(player.tick, 15)
 
         # Setup camera.
-        self.camera = Camera(tilemap, player)
+        self.camera = Camera(tilematrix, player)
         self.camera_ticker.add(self.camera.tick, 15)
 
-        player.setup_passability_layer(tilemap, self.layer_names['passability'])
+        player.setup_passability_layer(tilematrix, self.layer_names['passability'])
 
         # Put player into collision detection.
         self.collision.set_source(player)
@@ -160,13 +160,13 @@ class AbstractScene(Scene):
         sector_pos = sector.get_sector_pos()
         obstacles = self.sector_obstacles.get(sector_pos, [])
         # print obstacles
-        tilemap = self.tilemap
-        vault = tilemap.get_sheet('obstacles')
+        tilematrix = self.tilematrix
+        vault = tilematrix.get_sheet('obstacles')
         new_sprites = {}
         new_layers = {}
         # Group sprites by id for faster generation.
         for x, y, z, id in obstacles:
-            pos = (tilemap.translate_to_pos(x, y), z)
+            pos = (tilematrix.translate_to_pos(x, y), z, (x, y, z))
             try:
                 new_sprites[id].append(pos)
             except KeyError:
@@ -176,22 +176,32 @@ class AbstractScene(Scene):
             cls = self._obstacle_classes.get(id, SectorObstacle)
             _sprites = cls.make_many(vault, id, len(sprites))
             # print 'generated new sprites:', _sprites
-            for pos, z in sprites:
+            for pos, z, tile_pos in sprites:
+                # Don't recreate already existing obstacles.
+                if tile_pos in self._active_obstacles:
+                    print tile_pos
+                    continue
                 sprite = _sprites.pop()
                 sprite.pos = pos
+                sprite._sector_pos = sector_pos
+                sprite._tile_pos = tile_pos
+                sprite._tilematrix = tilematrix
+                sprite.setup()
                 try:
                     new_layers[z].append(sprite)
                 except KeyError:
                     new_layers[z] = [sprite]
+                self._active_obstacles[tile_pos] = sprite
         # Add them to the layers.
         for z, sprites in new_layers.iteritems():
             # print 'adding %s to layer %s' % (sprites, z)
-            tilemap.get_layer(z, auto_create=True).add_children(sprites)
+            tilematrix.get_layer(z, auto_create=True).add_children(sprites)
             self.collision.add_targets(sprites)
-            [sprite.set_sector_pos(sector_pos) for sprite in sprites]
+        event.emit('playfield.sector.created.after', sector)
 
     def __remove_obstacles_from_sector(self, context):
         sector = context
+        event.emit('playfield.sector.dropped.before', sector)
         sector_pos = sector.get_sector_pos()
         # Let's search for sprites to be removed.
         results = event.emit('playfield.sector.obstacles.clean_up', sector_pos)
@@ -206,42 +216,54 @@ class AbstractScene(Scene):
                 groups[sprite.parent_node].append(sprite)
             except KeyError:
                 groups[sprite.parent_node] = [sprite]
+            index = self._active_obstacles.keys()[self._active_obstacles.values().index(sprite)]
+            del self._active_obstacles[index]
         # Clean everything up.
         for layer, sprites in groups.iteritems():
             # print 'removing %s from layer %s' % (sprites, layer)
             layer.remove_children(sprites)
             self.collision.remove_targets(sprites)
 
+    def __remove_obstacle(self, context):
+        print('__remove_obstacle(%s, %s)' % (self, context))
+        obstacle = context
+        obstacle.remove_from_parent()
+        self.collision.remove_targets([obstacle])
+        index = self._active_obstacles.keys()[self._active_obstacles.values().index(obstacle)]
+        del self._active_obstacles[index]
+
     def __setup_obstacles(self):
-        tilemap = self.tilemap
+        tilematrix = self.tilematrix
         obstacles = {}
         # Search for obstacles.
-        obst_coords = tilemap.find_in_matrix_by_tilesheet('obstacles')
+        obst_coords = tilematrix.find_in_matrix_by_tilesheet('obstacles')
         # print obst_coords
         # Now remove them from the map.
         # TODO move tile "lava" into normal tilesheet and remove filtering here.
         tiles_to_remove = []
-        tilemap__get_sector_pos = tilemap.get_sector_pos
+        tilematrix__get_sector_pos = tilematrix.get_sector_pos
         for obst in obst_coords:
             x, y, z, id = obst
             if id == 'lava':
                 continue
             # print obst
             tiles_to_remove.append(([x, y, z, None]))
-            key = tilemap__get_sector_pos(x, y)
+            key = tilematrix__get_sector_pos(x, y)
             obst = [x, y, z, id]
             try:
                 obstacles[key].append(obst)
             except KeyError:
                 obstacles[key] = [obst]
-        tilemap.set_tiles_at(tiles_to_remove)
+        tilematrix.set_tiles_at(tiles_to_remove)
         # And cache them for later "recovery".
         self.sector_obstacles = obstacles
         self._obstacle_classes = {}
+        self._active_obstacles = {}
         # print obstacles
         self.bind(
             event.add_listener(self.__add_obstacles_to_sector, 'tilematrix.sector.created.after'),
             event.add_listener(self.__remove_obstacles_from_sector, 'tilematrix.sector.dropped.before'),
+            event.add_listener(self.__remove_obstacle, 'tilematrix.obstacle.ready_for_cleanup'),
         )
 
     def setup(self, data_path):
@@ -257,11 +279,11 @@ class AbstractScene(Scene):
 
         config_file = join(data_path, 'matrix.ini')
 
-        tilemap = TileMatrix()
-        # tilemap.show_sector_coords = True
-        tilemap.load_config(config_file)
-        # tilemap.set_pos(0, 550)
-        self.tilemap = tilemap
+        tilematrix = TileMatrix()
+        # tilematrix.show_sector_coords = True
+        tilematrix.load_config(config_file)
+        # tilematrix.set_pos(0, 550)
+        self.tilematrix = tilematrix
 
         config = ConfigParser.ConfigParser()
         config.read(config_file)
@@ -273,5 +295,5 @@ class AbstractScene(Scene):
         self.__setup_player()
         self.__setup_obstacles()
 
-        tilemap.add_to(self.root_node)
-        # TODO implement prefetching of tilemap sectors if event display.update.cpu_is_idle is being emitted.
+        tilematrix.add_to(self.root_node)
+        # TODO implement prefetching of tilematrix sectors if event display.update.cpu_is_idle is being emitted.
