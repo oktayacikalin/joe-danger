@@ -833,6 +833,12 @@
 12,-3,1,wall
 12,-2,1,wall
 12,-1,1,wall
+12,0,1,wall
+11,1,1,wall
+12,1,1,wall
+11,2,1,wall
+11,3,1,wall
+11,4,1,wall
 11,5,1,wall
 11,6,1,wall
 10,7,1,wall
