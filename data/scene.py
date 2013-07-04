@@ -225,7 +225,7 @@ class AbstractScene(Scene):
             self.collision.remove_targets(sprites)
 
     def __remove_obstacle(self, context):
-        print('__remove_obstacle(%s, %s)' % (self, context))
+        # print('__remove_obstacle(%s, %s)' % (self, context))
         obstacle = context
         obstacle.remove_from_parent()
         self.collision.remove_targets([obstacle])
