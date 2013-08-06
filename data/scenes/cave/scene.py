@@ -27,6 +27,7 @@ class CaveScene(AbstractScene):
         # music_.set_volume(50)
         # self.bind(music_)
 
+        return
         self._obstacle_classes.update(dict(
             wall_pit_left=WallPitLeft,
             wall_pit_right=WallPitRight,

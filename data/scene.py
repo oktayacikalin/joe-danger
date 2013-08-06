@@ -7,16 +7,15 @@
 from os.path import join
 import ConfigParser
 
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_SPACE
-
 from diamond.scene import Scene
 from diamond.tilematrix import TileMatrix
-from diamond.transition import TransitionManager
+# from diamond.transition import TransitionManager
 from diamond.ticker import Ticker
 from diamond.node import Node
-from diamond.fps import Fps
+# from diamond.fps import Fps
 from diamond.collision import Collision
 from diamond import event
+from diamond.decorators import time
 
 from data.player import Player
 from data.camera import Camera
@@ -26,21 +25,21 @@ from data.gfx import player as player_gfx
 
 class AbstractScene(Scene):
 
-    def __setup_fps(self):
-        fps_node = Node('fps node')
-        fps_node.order_matters = False
-        fps_node.add_to(self.root_node)
-        fps = Fps(ticker=self.ticker, details=True)
-        fps.set_alpha(75)
-        fps.set_background_color(0, 0, 0, 230)
-        fps.set_background_border(3)
-        fps.add_to(fps_node)
-        width = self.root_node.display.screen_size[0]
-        fps.set_align_box(width, 0, 'right')
-        fps_node.set_order_pos(10)
+    # def __setup_fps(self):
+    #     fps_node = Node('fps node')
+    #     fps_node.order_matters = False
+    #     fps_node.add_to(self.root_node)
+    #     fps = Fps(ticker=self.ticker, details=True)
+    #     fps.set_alpha(75)
+    #     fps.set_background_color(0, 0, 0, 230)
+    #     fps.set_background_border(3)
+    #     fps.add_to(fps_node)
+    #     width = self.root_node.display.screen_size[0]
+    #     fps.set_align_box(width, 0, 'right')
+    #     fps_node.set_order_pos(10)
 
     def __hide_passability(self):
-        layer = self.tilematrix.get_layer(self.layer_names['passability'], auto_create=True)
+        layer = self.tilematrix.get_layer(self.layer_names['passability'])
         layer.hide()
 
     def __collision_state_changed(self, context):
@@ -116,35 +115,32 @@ class AbstractScene(Scene):
         self.last_player_entry_point = pep
         self.player_entry_points = player_entry_points
         # And now remove all entry point tiles from view.
-        for pep in player_entry_points:
-            tilematrix.set_tiles_at([(pep[:3] + [None])])
+        # for pep in player_entry_points:
+        #     tilematrix.set_tiles_at([(pep[:3] + [None])])
 
         # Create player object.
-        player = Player.make(player_gfx, 'default')
+        player = self.player = Player.make(player_gfx, 'default')
         # Add it to the matrix.
-        tilematrix.get_layer(pos[2], auto_create=True).add(player)
+        tilematrix.get_layer(pos[2]).add_sprite(player)
         # Setup player position and orientation.
-        player.pos = tilematrix.translate_to_pos(*pos[:2])
+        player.position = tilematrix.translate_to_pos(*pos[:2])
         player.orientation = 'right'
         # Setup player controls.
         player.set_controls(self, **dict(
-            up=K_UP,
-            down=K_DOWN,
-            left=K_LEFT,
-            right=K_RIGHT,
-            action=K_SPACE,
+            up='UP',
+            down='DOWN',
+            left='LEFT',
+            right='RIGHT',
+            action='SPACE',
         ))
-        # Add player tick method to camera ticker to be in sync.
-        self.camera_ticker.add(player.tick, 15)
 
         # Setup camera.
         self.camera = Camera(tilematrix, player)
-        self.camera_ticker.add(self.camera.tick, 15)
 
         player.setup_passability_layer(tilematrix, self.layer_names['passability'])
 
         # Put player into collision detection.
-        self.collision.set_source(player)
+        # self.collision.set_source(player)
 
         # Now put player in hands of scene itself. It will call teardown later on.
         self.manage(player)
@@ -182,7 +178,7 @@ class AbstractScene(Scene):
                     print tile_pos
                     continue
                 sprite = _sprites.pop()
-                sprite.pos = pos
+                sprite.position = pos
                 sprite._sector_pos = sector_pos
                 sprite._tile_pos = tile_pos
                 sprite._tilematrix = tilematrix
@@ -195,7 +191,7 @@ class AbstractScene(Scene):
         # Add them to the layers.
         for z, sprites in new_layers.iteritems():
             # print 'adding %s to layer %s' % (sprites, z)
-            tilematrix.get_layer(z, auto_create=True).add_children(sprites)
+            tilematrix.get_layer(z).add_children(sprites)
             self.collision.add_targets(sprites)
         event.emit('playfield.sector.created.after', sector)
 
@@ -269,13 +265,9 @@ class AbstractScene(Scene):
     def setup(self, data_path):
         super(AbstractScene, self).setup()
         self.add_default_listeners()
-        self.ticker = Ticker()
-        self.camera_ticker = Ticker()
-        # self.camera_ticker = Ticker(limit=2, timeout=10)
-        self.camera_ticker.is_threaded = False  # Keep in sync with display.
-        self.transition_manager = TransitionManager()
-        self.bind(self.ticker, self.camera_ticker, self.transition_manager)
-        self.__setup_fps()
+        # self.ticker = Ticker()
+        # self.bind(self.ticker)
+        # self.__setup_fps()
 
         config_file = join(data_path, 'matrix.ini')
 
@@ -290,10 +282,16 @@ class AbstractScene(Scene):
         self.layer_names = dict([(id, int(z)) for z, id in config.items('layer.names')])
         # print self.layer_names
 
-        self.__hide_passability()
-        self.__setup_collision_detection()
-        self.__setup_player()
-        self.__setup_obstacles()
-
         tilematrix.add_to(self.root_node)
-        # TODO implement prefetching of tilematrix sectors if event display.update.cpu_is_idle is being emitted.
+        self.__hide_passability()
+        # self.__setup_collision_detection()
+        self.__setup_player()
+        # self.__setup_obstacles()
+        # tilematrix.position = -864.4, -600
+
+    # @time
+    def tick(self, dt):
+        super(AbstractScene, self).tick(dt)
+        # print self.root_node._child_nodes[0]._child_nodes
+        self.player.tick()
+        self.camera.tick()

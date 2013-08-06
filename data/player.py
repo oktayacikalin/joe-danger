@@ -8,8 +8,8 @@ from pygame.locals import KEYDOWN, KEYUP
 
 from diamond.sprite import Sprite
 from diamond import event
-from diamond.sound import Sound, ChannelArray
-from diamond.decorators import dump_args, time
+# from diamond.sound import Sound, ChannelArray
+from diamond.decorators import time
 
 
 class Player(Sprite):
@@ -17,7 +17,8 @@ class Player(Sprite):
     def __init__(self, *args, **kwargs):
         self.__listeners = []
         super(Player, self).__init__(*args, **kwargs)
-        self.active_commands = dict()
+        self.controls = dict()
+        self.scene = None
         self.orientation = 'right'
         self.tilematrix = None
         self.passability_layer_level = None
@@ -36,37 +37,39 @@ class Player(Sprite):
             fall=self.__tick_mode_fall,
         )
         self.track_animation_events = True
-        sound = Sound.get_instance()
-        self.sound_array = ChannelArray(1)
-        self.walk_sound = sound.load('data/sfx/walk.ogg', volume=63)
-        self.crawl_sound = sound.load('data/sfx/crawl.ogg', volume=48)
-        self.climb_sound = sound.load('data/sfx/climb.ogg', volume=48)
-        self.bump_sound = sound.load('data/sfx/bump.ogg', volume=24)
-        self.blub_sound = sound.load('data/sfx/blub.ogg', volume=24)
+        # sound = Sound.get_instance()
+        # self.sound_array = ChannelArray(1)
+        # self.walk_sound = sound.load('data/sfx/walk.ogg', volume=63)
+        # self.crawl_sound = sound.load('data/sfx/crawl.ogg', volume=48)
+        # self.climb_sound = sound.load('data/sfx/climb.ogg', volume=48)
+        # self.bump_sound = sound.load('data/sfx/bump.ogg', volume=24)
+        # self.blub_sound = sound.load('data/sfx/blub.ogg', volume=24)
 
     def set_controls(self, scene, up, down, left, right, action):
+        self.controls = dict(up=up, down=down, left=left, right=right, action=action)
+        self.scene = scene
         event.remove_listeners(self.__listeners)
         self.__listeners = [
-            event.add_listener(self.__on_up_event,
-                               'scene.event.system',
-                               context__scene__is=scene,
-                               context__event__key__eq=up),
-            event.add_listener(self.__on_down_event,
-                               'scene.event.system',
-                               context__scene__is=scene,
-                               context__event__key__eq=down),
-            event.add_listener(self.__on_left_event,
-                               'scene.event.system',
-                               context__scene__is=scene,
-                               context__event__key__eq=left),
-            event.add_listener(self.__on_right_event,
-                               'scene.event.system',
-                               context__scene__is=scene,
-                               context__event__key__eq=right),
-            event.add_listener(self.__on_action_event,
-                               'scene.event.system',
-                               context__scene__is=scene,
-                               context__event__key__eq=action),
+            # event.add_listener(self.__on_up_event,
+            #                    'scene.event.system',
+            #                    context__scene__is=scene,
+            #                    context__event__key__eq=up),
+            # event.add_listener(self.__on_down_event,
+            #                    'scene.event.system',
+            #                    context__scene__is=scene,
+            #                    context__event__key__eq=down),
+            # event.add_listener(self.__on_left_event,
+            #                    'scene.event.system',
+            #                    context__scene__is=scene,
+            #                    context__event__key__eq=left),
+            # event.add_listener(self.__on_right_event,
+            #                    'scene.event.system',
+            #                    context__scene__is=scene,
+            #                    context__event__key__eq=right),
+            # event.add_listener(self.__on_action_event,
+            #                    'scene.event.system',
+            #                    context__scene__is=scene,
+            #                    context__event__key__eq=action),
             event.add_listener(self.__on_animation_event,
                                'sprite.animation.event',
                                context__sprite__is=self),
@@ -78,7 +81,7 @@ class Player(Sprite):
         self.tilematrix = tilematrix
         self.passability_layer_level = level
         self.__switch_to_mode(self.mode, force=True)
-        self.float_pos = map(float, self.pos)
+        self.float_pos = map(float, self.position)
 
     def teardown(self):
         # print 'Player.teardown(%s)' % self
@@ -86,52 +89,53 @@ class Player(Sprite):
         self.mode_methods.clear()
         self.tilematrix = None
 
-    def __on_up_event(self, context):
-        if context.event.type == KEYDOWN:
-            self.active_commands['up'] = True
-        elif context.event.type == KEYUP:
-            try:
-                del self.active_commands['up']
-            except KeyError:
-                pass
+    # def __on_up_event(self, context):
+    #     if context.event.type == KEYDOWN:
+    #         self.active_commands['up'] = True
+    #     elif context.event.type == KEYUP:
+    #         try:
+    #             del self.active_commands['up']
+    #         except KeyError:
+    #             pass
 
-    def __on_down_event(self, context):
-        if context.event.type == KEYDOWN:
-            self.active_commands['down'] = True
-        elif context.event.type == KEYUP:
-            try:
-                del self.active_commands['down']
-            except KeyError:
-                pass
+    # def __on_down_event(self, context):
+    #     if context.event.type == KEYDOWN:
+    #         self.active_commands['down'] = True
+    #     elif context.event.type == KEYUP:
+    #         try:
+    #             del self.active_commands['down']
+    #         except KeyError:
+    #             pass
 
-    def __on_left_event(self, context):
-        if context.event.type == KEYDOWN:
-            self.active_commands['left'] = True
-        elif context.event.type == KEYUP:
-            try:
-                del self.active_commands['left']
-            except KeyError:
-                pass
+    # def __on_left_event(self, context):
+    #     if context.event.type == KEYDOWN:
+    #         self.active_commands['left'] = True
+    #     elif context.event.type == KEYUP:
+    #         try:
+    #             del self.active_commands['left']
+    #         except KeyError:
+    #             pass
 
-    def __on_right_event(self, context):
-        if context.event.type == KEYDOWN:
-            self.active_commands['right'] = True
-        elif context.event.type == KEYUP:
-            try:
-                del self.active_commands['right']
-            except KeyError:
-                pass
+    # def __on_right_event(self, context):
+    #     if context.event.type == KEYDOWN:
+    #         self.active_commands['right'] = True
+    #     elif context.event.type == KEYUP:
+    #         try:
+    #             del self.active_commands['right']
+    #         except KeyError:
+    #             pass
 
-    def __on_action_event(self, context):
-        if context.event.type == KEYDOWN:
-            self.active_commands['action'] = True
-        elif context.event.type == KEYUP:
-            try:
-                del self.active_commands['action']
-            except KeyError:
-                pass
+    # def __on_action_event(self, context):
+    #     if context.event.type == KEYDOWN:
+    #         self.active_commands['action'] = True
+    #     elif context.event.type == KEYUP:
+    #         try:
+    #             del self.active_commands['action']
+    #         except KeyError:
+    #             pass
 
     def __on_animation_event(self, context):
+        return
         if context.event == 'walk_step':
             self.sound_array.play(self.walk_sound)
         elif context.event == 'crawl_step':
@@ -344,7 +348,7 @@ class Player(Sprite):
         elif self.__has_barrier('up'):
             vel_y = 0.0
             # print('bumped on ceiling at: %s, %s' % (state['pos_x'], state['pos_y']))
-            self.sound_array.play(self.bump_sound)
+            # self.sound_array.play(self.bump_sound)
             pos_y = state['pos_y']
             diff = int(round(pos_y / 16.0)) * 16 - pos_y
             # print(diff)
@@ -512,7 +516,7 @@ class Player(Sprite):
         if vel_y < 0.0 and self.__has_barrier('up'):
             vel_y = 0.0
             # print('bumped on ceiling at: %s' % ((state['pos_x'], pos_y),))
-            self.sound_array.play(self.bump_sound)
+            # self.sound_array.play(self.bump_sound)
             diff = int(round(pos_y / 16.0)) * 16 - pos_y
             # print(diff)
             state['pos_y'] += diff + 1
@@ -521,7 +525,7 @@ class Player(Sprite):
             # If player is falling and has ground below...
             if vel_y >= 0.0 and self.__has_ground('down'):
                 # print('bumped on floor at: %s' % ((state['pos_x'], pos_y),))
-                self.sound_array.play(self.bump_sound)
+                # self.sound_array.play(self.bump_sound)
                 # ...and velocity >= 7.0 set velocity to -y/5 and
                 if vel_y >= 7.0:
                     vel_y = -vel_y / 5
@@ -550,13 +554,17 @@ class Player(Sprite):
         state['vel_x'] = vel_x
         state['vel_y'] = vel_y
 
-    def set_pos(self, x, y):
+    def set_position(self, x, y):
         self.float_pos = (x, y)
         self.velocity = (0.0, 0.0)
-        super(Player, self).set_pos(x, y)
+        super(Player, self).set_position(x, y)
 
+    # @time
     def tick(self):
-        active_commands = self.active_commands.copy()  # Don't break code above.
+        active_commands = dict()
+        for key, val in self.controls.iteritems():
+            if val in self.scene.keys_pressed:
+                active_commands[key] = True
 
         if 'left' in active_commands and 'right' in active_commands:
             del active_commands['left']
@@ -620,4 +628,4 @@ class Player(Sprite):
 
         if pos_dirty:
             self.float_pos = (pos_x, pos_y)
-            super(Player, self).set_pos(*map(int, map(round, self.float_pos)))
+            super(Player, self).set_position(*map(int, map(round, self.float_pos)))

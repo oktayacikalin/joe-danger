@@ -16,8 +16,11 @@ def main():
     logging.LOG_LEVEL_THRESHOLD = logging.LOG_LEVEL_DEBUG
 
     manager = SceneManager()
-    display = manager.setup_display(screen_size=(640, -480))
-    display.set_caption('Joe Danger')
+    display = manager.setup_window(
+        width=640, height=480,
+        adapt_width=True, resizable=True,
+        caption='Joe Danger'
+    )
     manager.add_scene(CaveScene, scene_id='cave')
     manager.run('cave')
 
