@@ -6,26 +6,36 @@
 # @copyright Oktay Acikalin
 # @license   MIT (LICENSE.txt)
 
+from diamond.cli import Cli
 from diamond.scene import SceneManager
 
 from data.scenes.cave.scene import CaveScene
 
 
 def main():
-    from diamond.helper import logging
-    logging.LOG_LEVEL_THRESHOLD = logging.LOG_LEVEL_DEBUG
+    cli = Cli(
+        app_name='Joe Danger',
+        app_version=0.1,
+        app_description='An adventurous jump\'n\'run.',
+        prog_name=__file__,
+    )
+    cli.add_screen_size(default='640x480')
+    cli.add_fullscreen()
+    cli.add_debug_logging()
+    cli.add_profiler()
+    args = cli.parse_args()
 
     manager = SceneManager()
-    display = manager.setup_window(
-        width=640, height=480,
-        adapt_width=True, resizable=True,
+    width, height = map(int, args.screen_size.split('x'))
+    manager.setup_window(
+        width=width, height=height,
+        adapt_height=True, resizable=True,
+        fullscreen=args.fullscreen,
         caption='Joe Danger'
     )
     manager.add_scene(CaveScene, scene_id='cave')
-    manager.run('cave')
 
-    from diamond.decorators import print_time_stats
-    print_time_stats()
+    cli.run(manager.run, 'cave')
 
 
 if __name__ == '__main__':
