@@ -561,10 +561,11 @@ class Player(Sprite):
 
     # @time
     def tick(self):
-        active_commands = dict()
-        for key, val in self.controls.iteritems():
-            if val in self.scene.keys_pressed:
-                active_commands[key] = True
+        active_commands = dict(
+            (key, True)
+            for key, val in self.controls.iteritems()
+            if val in self.scene.keys_pressed
+        )
 
         if 'left' in active_commands and 'right' in active_commands:
             del active_commands['left']
