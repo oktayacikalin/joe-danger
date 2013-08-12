@@ -39,8 +39,7 @@ class AbstractScene(Scene):
     #     fps_node.set_order_pos(10)
 
     def __hide_passability(self):
-        layer = self.tilematrix.get_layer(self.layer_names['passability'])
-        layer.hide()
+        self.tilematrix.get_layer(self.layer_names['passability']).hide()
 
     def __collision_state_changed(self, context):
         # print(context)
@@ -96,27 +95,26 @@ class AbstractScene(Scene):
             self.energy = 100
             pep = self.last_player_entry_point
             pos = pep[:3]
-            player.set_pos(*self.tilematrix.translate_to_pos(*pos[:2]))
+            player.position = self.tilematrix.translate_to_pos(*pos[:2])
 
     def __setup_player(self):
         tilematrix = self.tilematrix
 
         # Search for possible entry points.
-        player_entry_points = tilematrix.find_in_matrix_by_tilesheet('player')
-        if not player_entry_points:
+        peps = tilematrix.find_in_matrix_by_tilesheet('player')
+        if not peps:
             raise Exception('Missing player char in tilematrix!')
         # Decide for one entry point.
         # TODO for now we just take the first one.
-        pep = player_entry_points[0]
+        pep = peps[0]
         pos = pep[:3]
         tile_id = pep[3]
         print('Found entry point with tile_id %s at: %s' % (tile_id, pos))
         # Save the list for later (e.g. respawn)
         self.last_player_entry_point = pep
-        self.player_entry_points = player_entry_points
+        self.peps = peps
         # And now remove all entry point tiles from view.
-        # for pep in player_entry_points:
-        #     tilematrix.set_tiles_at([(pep[:3] + [None])])
+        tilematrix.set_tiles_at((pep[:3] + [None]) for pep in peps)
 
         # Create player object.
         player = self.player = Player.make(player_gfx, 'default')
@@ -274,7 +272,6 @@ class AbstractScene(Scene):
         tilematrix = TileMatrix()
         # tilematrix.show_sector_coords = True
         tilematrix.load_config(config_file)
-        # tilematrix.set_pos(0, 550)
         self.tilematrix = tilematrix
 
         config = ConfigParser.ConfigParser()
@@ -294,4 +291,11 @@ class AbstractScene(Scene):
         super(AbstractScene, self).tick(dt)
         # print self.root_node._child_nodes[0]._child_nodes
         self.player.tick()
-        self.camera.tick()
+        self.camera.tick(dt)
+
+        # Detect if player has fallen out of the map.
+        p_x, p_y = self.player.position
+        b_l, b_t, b_r, b_b = self.tilematrix.get_boundaries()
+        if p_x < b_l or p_x > b_r or p_y < b_t or p_y > b_b:
+            self.energy = 0
+            event.emit('player.energy.changed', self.player)
